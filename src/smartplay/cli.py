@@ -16,11 +16,16 @@ import json
 import time
 from pathlib import Path
 
+DEFAULT_BALL_WEIGHTS = Path(__file__).resolve().parents[2] / "weights/wasb/wasb_tennis_best.pth.tar"
 
-def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_frames: int | None
-             ) -> None:
+
+def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_frames: int | None,
+             ball_weights: Path = DEFAULT_BALL_WEIGHTS) -> None:
+    import itertools
+
     import cv2
 
+    from smartplay.ball.detector import WasbBallDetector
     from smartplay.events.audio import detect_hits, envelope_per_frame
     from smartplay.geometry.camera import CourtCamera
     from smartplay.ingestion.video import extract_audio, iter_frames, probe
@@ -44,6 +49,14 @@ def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_
     hit_frames = [round(h.t * info.fps) for h in hits]
     env = envelope_per_frame(audio, sr, info.fps, info.n_frames)
     print(f"audio: {len(audio) / sr:.1f} s, {len(hits)} hit candidates")
+
+    tb = time.time()
+    ball_det = WasbBallDetector(ball_weights)
+    ball = ball_det.track(itertools.islice(iter_frames(video), n), info.width, info.height)
+    del ball_det
+    seen = sum(b.visibility == "visible" for b in ball)
+    print(f"ball (WASB tennis weights, zero-shot): seen in {seen}/{len(ball)} frames "
+          f"({100 * seen / max(1, len(ball)):.1f} %), {len(ball) / (time.time() - tb):.1f} fps")
 
     detector = PersonDetector(threshold)
     tracker = FourPlayerTracker()
@@ -70,8 +83,12 @@ def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_
         viz.draw_court(frame, cam)
         viz.draw_players(frame, boxes, tracks)
         viz.draw_minimap(frame, tracks)
+        viz.draw_ball(frame, ball, idx)
         near_hit = any(abs(idx - hf) <= 3 for hf in hit_frames)
-        viz.draw_hud(frame, idx, info.fps, near_hit, "not detected yet")
+        b = ball[idx] if idx < len(ball) else None
+        ball_text = (f"ball: seen (score {b.conf:.2f})" if b is not None and b.uv is not None
+                     else "ball: lost")
+        viz.draw_hud(frame, idx, info.fps, near_hit, "not detected yet", ball_text)
         viz.draw_timeline(frame, env, hit_frames, idx, info.fps)
         writer.write(frame)
         tracks_log.extend(t.model_dump() for t in tracks)
@@ -80,6 +97,7 @@ def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_
     writer.release()
 
     (out_dir / "tracks.json").write_text(json.dumps(tracks_log))
+    (out_dir / "ball.json").write_text(json.dumps([b.model_dump() for b in ball]))
     (out_dir / "audio_hits.json").write_text(
         json.dumps([{"t": h.t, "frame": f, "strength": h.strength}
                     for h, f in zip(hits, hit_frames, strict=True)], indent=1))

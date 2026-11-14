@@ -6,7 +6,7 @@ import numpy as np
 
 from smartplay.geometry.camera import COURT_LINES, CourtCamera
 from smartplay.geometry.court import HALF_LENGTH_M, HALF_WIDTH_M
-from smartplay.schemas.records import PlayerTrack
+from smartplay.schemas.records import BallState, PlayerTrack
 
 TEAM_COLOR = {"A": (40, 140, 255), "B": (230, 200, 40)}  # BGR: orange / cyan
 WHITE, BLACK, GREEN, RED = (255, 255, 255), (0, 0, 0), (80, 220, 80), (60, 60, 255)
@@ -93,11 +93,30 @@ def draw_timeline(
     _put(img, "audio loudness + hit candidates (green)", (x0, y0 - 8), 0.5, WHITE)
 
 
-def draw_hud(img: np.ndarray, frame: int, fps: float, hit_now: bool, score_text: str) -> None:
+def draw_ball(img: np.ndarray, ball: list[BallState], frame: int, trail: int = 12) -> None:
+    """Ball position (magenta) with a short trail of recent detections; nothing when lost."""
+    import cv2
+
+    pts = [b.uv for b in ball[max(0, frame - trail): frame + 1] if b.uv is not None]
+    for p, q in zip(pts, pts[1:], strict=False):
+        if np.hypot(p[0] - q[0], p[1] - q[1]) < 250:
+            cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), (255, 0, 255), 2,
+                     cv2.LINE_AA)
+    cur = ball[frame] if frame < len(ball) else None
+    if cur is not None and cur.uv is not None:
+        c = (int(cur.uv[0]), int(cur.uv[1]))
+        cv2.circle(img, c, 10, (255, 0, 255), 2, cv2.LINE_AA)
+        cv2.circle(img, c, 3, (255, 0, 255), -1, cv2.LINE_AA)
+
+
+def draw_hud(
+    img: np.ndarray, frame: int, fps: float, hit_now: bool, score_text: str,
+    ball_text: str = "ball: not tracked",
+) -> None:
     """Text block at the bottom left, above the timeline (keeps broadcast overlays visible)."""
     y = img.shape[0] - 200
     _put(img, f"frame {frame}  t={frame / fps:5.2f}s", (20, y), 0.7)
     _put(img, f"score: {score_text}", (20, y + 32), 0.7, (0, 255, 255))
-    _put(img, "ball: not tracked yet", (20, y + 62), 0.6, (180, 180, 180))
+    _put(img, ball_text, (20, y + 62), 0.6, (180, 180, 180))
     if hit_now:
         _put(img, "HIT? (audio)", (20, y - 36), 0.9, GREEN)
