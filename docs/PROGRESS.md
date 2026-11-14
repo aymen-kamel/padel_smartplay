@@ -74,3 +74,7 @@ Verification: **45 tests pass**; `ruff` clean. One test shows why constrained de
 Not done in M0: the oracle check against a real match (needs recorded matches and point labels, milestone M1); config loading from YAML into `MatchRules` (trivial, added when the pipeline needs it). The original project folder was not modified apart from this log.
 
 Next: **M1** — record the first match with a fixed camera and audio, calibrate, and label points (format L1 in `architecture/PLAN.md`).
+
+## Video baseline and ball detection: DONE (2026-11-14)
+
+New repo `C:\dev\smartplay` (GitHub: aymen-kamel/padel_smartplay). Added after M0: court camera from 12 clicked points, RF-DETR Small + four-player tracker, audio hit candidates, WASB ball detector (MIT, vendored and credited), annotated-video CLI. On `rally.mp4`: ~15 fps, players observed 99.7 %, ball seen 65.9 % (zero-shot tennis weights), 10 audio hit candidates, calibration leave-one-out 14.2 cm. **No stage is measured against labels yet.** Details: `README.md` in the new repo.
