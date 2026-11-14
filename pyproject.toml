@@ -22,3 +22,4 @@ addopts = "-q"
 [tool.ruff]
 line-length = 100
 src = ["src"]
+extend-exclude = ["src/smartplay/ball/wasb_hrnet.py"]  # vendored third-party code, kept as is
