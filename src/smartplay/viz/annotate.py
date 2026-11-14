@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from itertools import pairwise
+
 import numpy as np
 
 from smartplay.geometry.camera import COURT_LINES, CourtCamera
@@ -98,7 +100,7 @@ def draw_ball(img: np.ndarray, ball: list[BallState], frame: int, trail: int = 1
     import cv2
 
     pts = [b.uv for b in ball[max(0, frame - trail): frame + 1] if b.uv is not None]
-    for p, q in zip(pts, pts[1:], strict=False):
+    for p, q in pairwise(pts):
         if np.hypot(p[0] - q[0], p[1] - q[1]) < 250:
             cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), (255, 0, 255), 2,
                      cv2.LINE_AA)
