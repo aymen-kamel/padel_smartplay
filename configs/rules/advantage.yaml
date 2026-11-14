@@ -1,0 +1,7 @@
+# FIP Rule 1, option 1 (Advantage)
+deuce_mode: advantage
+games_per_set: 6
+sets_to_win: 2
+tiebreak_points: 7
+final_set: full
+final_set_tiebreak: true
