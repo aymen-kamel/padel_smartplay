@@ -76,15 +76,34 @@ def parse_tokens(tokens: list[tuple[float, float, str]]) -> Board | None:
         if not re.fullmatch(r"[0-7]", cell):
             return None
     for cell in (top[-1], bot[-1]):  # points: 0/15/30/40/AD, or a small number in a tie-break
-        if cell not in POINT_VALUES and not (cell.isdigit() and int(cell) <= 30):
-            return None
+        if cell not in POINT_VALUES:
+            # plain numbers are only valid as tie-break points, i.e. at 6-6 in games
+            if not (cell.isdigit() and int(cell) <= 30 and top[-2] == "6" and bot[-2] == "6"):
+                return None
     return Board(top, bot)
+
+
+def _set_won(a: int, b: int) -> bool:
+    hi, lo = max(a, b), min(a, b)
+    return (hi >= 6 and hi - lo >= 2) or (hi == 7 and lo in (5, 6))
+
+
+def canonical(board: Board) -> tuple[tuple[tuple[int, int], ...], tuple[int, int], tuple[str, str]]:
+    """(completed sets, games, point labels), rolling a finished set over.
+
+    Right after a set ends the board still shows the final games (e.g. 4-6) with 0-0 points before
+    it adds a column; that moment is the same score as "set 4-6 done, games 0-0".
+    """
+    a, b = board.games
+    pts = tuple("AD" if x == "A" else x for x in board.points)
+    if _set_won(a, b) and pts == ("0", "0"):
+        return board.sets + ((a, b),), (0, 0), ("0", "0")
+    return board.sets, board.games, pts  # type: ignore[return-value]
 
 
 def to_state(board: Board, rules: MatchRules) -> ScoreState:
     """Engine state equivalent to the board (deuce count unknown: 40-40 is taken as deuce 1)."""
-    pa, pb = board.points
-    games = board.games
+    sets, games, (pa, pb) = canonical(board)
     tiebreak = games == (rules.games_per_set, rules.games_per_set) and not (
         pa in POINT_VALUES and pb in POINT_VALUES
     )
@@ -98,7 +117,7 @@ def to_state(board: Board, rules: MatchRules) -> ScoreState:
             pts = (3, 4)
     return ScoreState(
         server=rules.first_server,
-        completed_sets=board.sets,
+        completed_sets=sets,
         games=games,
         points=pts,
         tiebreak=tiebreak,
@@ -109,11 +128,8 @@ def to_state(board: Board, rules: MatchRules) -> ScoreState:
 
 def same_board(state: ScoreState, board: Board) -> bool:
     """Do the engine state and the board show the same score? (compared as displayed)."""
-    labels = point_labels(state)
-    shown = tuple("AD" if x == "A" else x for x in board.points)
-    got = tuple(x for x in labels)
-    got = tuple("AD" if x == "AD" else x for x in got)
-    return state.completed_sets == board.sets and state.games == board.games and got == shown
+    sets, games, shown = canonical(board)
+    return state.completed_sets == sets and state.games == games and point_labels(state) == shown
 
 
 def classify_transition(prev: Board, nxt: Board, rules: MatchRules) -> str:
@@ -134,3 +150,57 @@ def classify_transition(prev: Board, nxt: Board, rules: MatchRules) -> str:
     if len(fits) == 1:
         return fits[0]
     return "jump"
+
+
+def reachable(prev: Board, nxt: Board, rules: MatchRules, max_points: int = 40) -> int | None:
+    """Fewest points that lead the engine from ``prev`` to ``nxt`` (None if not reachable).
+
+    A forward breadth-first search over the score automaton. A broadcast that skips points still
+    moves forward in the real score, so each transition should be reachable.
+    """
+    start = to_state(prev, rules)
+    if same_board(start, nxt):
+        return 0
+    seen = {_key(start)}
+    frontier = [start]
+    for depth in range(1, max_points + 1):
+        new = []
+        for s in frontier:
+            for w in ("A", "B"):
+                try:
+                    t = apply_point(s, w, rules)  # type: ignore[arg-type]
+                except ValueError:
+                    continue
+                if same_board(t, nxt):
+                    return depth
+                k = _key(t)
+                if k not in seen:
+                    seen.add(k)
+                    new.append(t)
+        frontier = new
+        if not frontier:
+            break
+    return None
+
+
+def _key(s: ScoreState) -> tuple:
+    return (s.completed_sets, s.games, s.points, s.tiebreak)
+
+
+def consistent_timeline(
+    timeline: list[tuple[int, Board]], rules: MatchRules, max_points: int = 40
+) -> tuple[list[tuple[int, Board]], list[tuple[int, Board]]]:
+    """Keep readings that the real score could have reached from the last kept reading.
+
+    Returns (kept, dropped). A dropped reading is an OCR error or a replay of an earlier moment;
+    it never replaces the reference state.
+    """
+    kept: list[tuple[int, Board]] = []
+    dropped: list[tuple[int, Board]] = []
+    for fr, b in timeline:
+        if not kept or reachable(kept[-1][1], b, rules, max_points) is not None:
+            if not kept or kept[-1][1].key() != b.key():
+                kept.append((fr, b))
+        else:
+            dropped.append((fr, b))
+    return kept, dropped

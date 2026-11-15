@@ -8,6 +8,7 @@ analysis can be re-run without decoding the video again.
 
 from __future__ import annotations
 
+import itertools
 import json
 import time
 from dataclasses import dataclass
@@ -98,7 +99,7 @@ def segments(cut: np.ndarray, blue: np.ndarray, masks: np.ndarray,
     ref = reference_mask(blue, masks)
     bounds = [0, *detect_cuts(cut, cut_threshold), len(cut)]
     out = []
-    for a, b in zip(bounds[:-1], bounds[1:], strict=True):
+    for a, b in itertools.pairwise(bounds):
         m = masks[a:b]
         inter = (m & ref).sum(axis=(1, 2))
         union = (m | ref).sum(axis=(1, 2))

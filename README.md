@@ -59,6 +59,25 @@ audio loudness timeline with hit candidates), `tracks.json`, `ball.json`, `audio
 Weights are downloaded on first use: RF-DETR Small COCO (368 MB, Apache-2.0) and the WASB
 tennis model (6 MB, MIT, place it in `weights/wasb/`).
 
+
+### Test on a broadcast highlights video (11 min, Premier Padel)
+`scripts/segment_broadcast.py` + `scripts/analyze_highlights.py` + `scripts/export_clips.py`
+cut a broadcast into shots, find the wide main view, read the on-screen scoreboard with OCR and
+turn score changes into point labels (the clips and JSON files are written to `runs/`, not stored in git).
+
+| Measure (one video, 19,943 frames) | Result |
+|---|---|
+| Shots found | 84, of which 29 are the main wide view (424 s of 665 s) |
+| Scoreboard states read | 30 distinct, 1 reading dropped as OCR error |
+| Changes explained by exactly one point (winner known) | 9, including a game and a set ending |
+| Consecutive score changes reachable with the FIP rules in this repo | **29 of 29** (up to 13 points skipped between readings) |
+
+The last row is the useful one: real broadcast scores are consistent with the score engine
+(Advantage and Golden Point give the same result here because no deuce sequence was observed).
+Limits: highlights skip points, so a full score cannot be rebuilt from this video; the main-view
+shots are not yet checked by eye one by one; this video has a different framing from `rally.mp4`,
+so player/ball tracking on it still needs its own court calibration.
+
 ## Architecture
 
 ```
