@@ -24,7 +24,11 @@ Keys are listed at the top of `scripts/label_tool.py` and in the window. In shor
 Rules for consistent labels: click the centre of the ball; if only a blur streak is visible, click its middle; ball hidden behind a player or the net = `X`; mark a hit only on the frame closest to the racket-ball contact.
 Estimated size: about 135 ball frames and 10-15 hits per clip.
 
-## Claude's next steps (after the labels exist)
+## Status 2026-11-15: labels done, evaluation done
+See `docs/BENCHMARK_BASELINE.md`: ball F1 0.60 @5px (reflections on the glass, recall ~50 %), hits F1 0.64 @+-3 frames.
+Steps 1-2 below are finished (`scripts/eval_benchmark.py`). Next: glass-reflection rejection, then recall (fine-tuning).
+
+## Claude's next steps
 1. `scripts/eval_ball.py`: compare `runs/point_XX/ball.json` with `data/labels/point_XX.json` (F1 at 5 px, recall, false tracks on glass).
 2. `scripts/eval_hits.py`: compare `runs/point_XX/audio_hits.json` with the labelled hits (F1 at +-3 frames).
 3. Bake-off per `EXPERIMENT_CANDIDATES.md`: ball (WASB zero-shot vs fine-tuned vs TrackNetV3), players (RF-DETR vs YOLO26 vs D-FINE on far players), pose, tracking. Record speed and peak VRAM for every candidate.
