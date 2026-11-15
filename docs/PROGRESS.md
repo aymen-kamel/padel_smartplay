@@ -78,3 +78,6 @@ Next: **M1** — record the first match with a fixed camera and audio, calibrate
 ## Video baseline and ball detection: DONE (2026-11-14)
 
 New repo `C:\dev\smartplay` (GitHub: aymen-kamel/padel_smartplay). Added after M0: court camera from 12 clicked points, RF-DETR Small + four-player tracker, audio hit candidates, WASB ball detector (MIT, vendored and credited), annotated-video CLI. On `rally.mp4`: ~15 fps, players observed 99.7 %, ball seen 65.9 % (zero-shot tennis weights), 10 audio hit candidates, calibration leave-one-out 14.2 cm. **No stage is measured against labels yet.** Details: `README.md` in the new repo.
+
+## Decision: licence relaxed for experimentation (user, 2026-11-15)
+Technical performance outranks licensing during the experiment phase; every component's licence is documented and reviewed before production. Research for the newly allowed options: `docs/research/EXPERIMENT_CANDIDATES.md`. Next: a small labelled benchmark (two highlight clips) so candidates can be compared with real numbers.
