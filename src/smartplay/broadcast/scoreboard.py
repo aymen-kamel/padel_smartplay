@@ -76,10 +76,10 @@ def parse_tokens(tokens: list[tuple[float, float, str]]) -> Board | None:
         if not re.fullmatch(r"[0-7]", cell):
             return None
     for cell in (top[-1], bot[-1]):  # points: 0/15/30/40/AD, or a small number in a tie-break
-        if cell not in POINT_VALUES:
-            # plain numbers are only valid as tie-break points, i.e. at 6-6 in games
-            if not (cell.isdigit() and int(cell) <= 30 and top[-2] == "6" and bot[-2] == "6"):
-                return None
+        # plain numbers are only valid as tie-break points, i.e. at 6-6 in games
+        tiebreak_ok = cell.isdigit() and int(cell) <= 30 and top[-2] == "6" and bot[-2] == "6"
+        if cell not in POINT_VALUES and not tiebreak_ok:
+            return None
     return Board(top, bot)
 
 
