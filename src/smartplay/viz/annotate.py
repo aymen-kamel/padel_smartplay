@@ -24,6 +24,51 @@ def _put(img, text, org, scale=0.6, color=WHITE, thick=1, bg=True):
     cv2.putText(img, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, scale, color, thick, cv2.LINE_AA)
 
 
+BAR_H = 100
+
+
+def compose_with_top_bar(
+    frame: np.ndarray, stats: dict[int, dict], t: float, hits_so_far: int, ball_text: str,
+    bar_h: int = BAR_H,
+) -> np.ndarray:
+    """A statistics strip above the video (the video itself is not covered).
+
+    Left: team A (near camera) players with distance covered and current speed. Right: team B.
+    Centre: clock, audio hit candidates so far, ball state. Ball speed is not shown: it needs the
+    3D court model (a floor homography cannot measure a ball in the air).
+    """
+    import cv2
+
+    h, w = frame.shape[:2]
+    s = w / 1920.0
+    bar = np.full((bar_h, w, 3), (28, 28, 28), np.uint8)
+    cv2.line(bar, (0, bar_h - 1), (w, bar_h - 1), (90, 90, 90), 2)
+
+    def block(team: str, x0: int, title: str) -> None:
+        col = TEAM_COLOR[team]
+        cv2.putText(bar, title, (x0, int(30 * s) + 4), cv2.FONT_HERSHEY_SIMPLEX, 0.75 * s, col, 2, cv2.LINE_AA)
+        rows = [(pid, v) for pid, v in stats.items() if v["team"] == team]
+        for k, (pid, v) in enumerate(rows[:2]):
+            y = int((58 + 28 * k) * s) + 4
+            cv2.putText(bar, f"P{pid}", (x0, y), cv2.FONT_HERSHEY_SIMPLEX, 0.65 * s, col, 2, cv2.LINE_AA)
+            cv2.putText(bar, f"{v['dist_m']:6.1f} m", (x0 + int(60 * s), y), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.65 * s, WHITE, 1, cv2.LINE_AA)
+            cv2.putText(bar, f"{v['speed_kmh']:4.1f} km/h", (x0 + int(210 * s), y), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.65 * s, WHITE, 1, cv2.LINE_AA)
+
+    block("A", int(30 * s), "TEAM A  (near camera)")
+    block("B", int(1280 * s), "TEAM B  (far side)")
+    mins, secs = divmod(t, 60)
+    cx = int(w / 2)
+    cv2.putText(bar, f"{int(mins)}:{secs:04.1f}", (cx - int(70 * s), int(40 * s) + 4), cv2.FONT_HERSHEY_SIMPLEX,
+                1.2 * s, WHITE, 2, cv2.LINE_AA)
+    cv2.putText(bar, f"hit candidates: {hits_so_far}", (cx - int(150 * s), int(68 * s) + 4),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6 * s, GREEN, 1, cv2.LINE_AA)
+    cv2.putText(bar, ball_text, (cx - int(150 * s), int(90 * s)), cv2.FONT_HERSHEY_SIMPLEX, 0.55 * s,
+                (200, 200, 200), 1, cv2.LINE_AA)
+    return np.vstack([bar, frame])
+
+
 def draw_court(img: np.ndarray, cam: CourtCamera) -> None:
     import cv2
 

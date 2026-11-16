@@ -39,3 +39,8 @@ Steps 1-2 below are finished (`scripts/eval_benchmark.py`). Glass-reflection rej
 - Allowed to download the two PadelTracker100 source videos from YouTube for fine-tuning the ball model?
 - One camera or two? (A commercial product, Padmi, uses two cameras installed on the court.)
 - Is cloud GPU acceptable for fine-tuning, or only the RTX 3050 6 GB?
+
+## Status 2026-11-16 (second update)
+- Top statistics bar added to the annotated video (`viz.compose_with_top_bar`, `analytics/player_stats.py`): per-player distance and speed from smoothed tracks (jitter and glitches ignored), clock, audio hit candidates, ball state. Ball speed is NOT shown (needs the 3D court model).
+- PadelTracker100 annotations downloaded to `data/external/padeltracker100/` (labels.zip, 70 MB, CC BY 4.0): ball boxes in COCO format (categories also include wall and shot events), player pose, homography, shot CSVs for the two 2022 Barcelona finals. They contain **no video frames**.
+- Fine-tuning the ball model is BLOCKED on the source videos: two YouTube matches (ids in record.json: Mdq42o4jdg0 and tCuZ6i-aVbY), sizes unknown, probably several GB each. A download over 2 GB needs the user's explicit OK (rule), and YouTube terms must be accepted by the user. `yt-dlp` is not installed.

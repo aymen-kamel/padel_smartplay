@@ -25,6 +25,7 @@ def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_
 
     import cv2
 
+    from smartplay.analytics.player_stats import PlayerStats
     from smartplay.ball.detector import WasbBallDetector
     from smartplay.events.audio import detect_hits, envelope_per_frame
     from smartplay.geometry.camera import CourtCamera
@@ -61,7 +62,8 @@ def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_
     detector = PersonDetector(threshold)
     tracker = FourPlayerTracker()
     writer = cv2.VideoWriter(str(out_dir / "annotated.mp4"), cv2.VideoWriter_fourcc(*"mp4v"),
-                             info.fps, (info.width, info.height))
+                             info.fps, (info.width, info.height + viz.BAR_H))
+    stats = PlayerStats(info.fps)
     tracks_log: list[dict] = []
     t0 = time.time()
     for idx, frame in iter_frames(video):
@@ -90,6 +92,9 @@ def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_
                      else "ball: lost")
         viz.draw_hud(frame, idx, info.fps, near_hit, "not detected yet", ball_text)
         viz.draw_timeline(frame, env, hit_frames, idx, info.fps)
+        stats.update(tracks)
+        frame = viz.compose_with_top_bar(
+            frame, stats.snapshot(), idx / info.fps, sum(1 for hf in hit_frames if hf <= idx), ball_text)
         writer.write(frame)
         tracks_log.extend(t.model_dump() for t in tracks)
         if idx % 50 == 0:
