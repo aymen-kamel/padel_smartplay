@@ -23,3 +23,6 @@ addopts = "-q"
 line-length = 100
 src = ["src"]
 extend-exclude = ["src/smartplay/ball/wasb_hrnet.py"]  # vendored third-party code, kept as is
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["UP031"]  # one-off reporting scripts use %-formatting

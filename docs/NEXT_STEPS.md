@@ -26,7 +26,7 @@ Estimated size: about 135 ball frames and 10-15 hits per clip.
 
 ## Status 2026-11-15: labels done, evaluation done
 See `docs/BENCHMARK_BASELINE.md`: ball F1 0.60 @5px (reflections on the glass, recall ~50 %), hits F1 0.64 @+-3 frames.
-Steps 1-2 below are finished (`scripts/eval_benchmark.py`). Next: glass-reflection rejection, then recall (fine-tuning).
+Steps 1-2 below are finished (`scripts/eval_benchmark.py`). Glass-reflection rejection done 2026-11-16: ball F1 0.60 -> 0.70 @5px (see BENCHMARK_BASELINE.md). Next: recall (fine-tuning the ball model on padel footage), then hits (audio + ball + wrist).
 
 ## Claude's next steps
 1. `scripts/eval_ball.py`: compare `runs/point_XX/ball.json` with `data/labels/point_XX.json` (F1 at 5 px, recall, false tracks on glass).

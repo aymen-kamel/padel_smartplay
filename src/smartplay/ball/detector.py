@@ -141,22 +141,21 @@ class WasbBallDetector:
                            cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
         return ((rgb - IMAGENET_MEAN) / IMAGENET_STD).transpose(2, 0, 1)  # (3, H, W)
 
-    def track(self, frames: Iterable[tuple[int, np.ndarray]], width: int, height: int
-              ) -> list[BallState]:
-        """Run over the whole frame sequence; returns one ``BallState`` per frame."""
+    def blobs(self, frames: Iterable[tuple[int, np.ndarray]], width: int, height: int
+              ) -> list[list[Blob]]:
+        """Every ball candidate (heatmap blob) of every frame; the tracker decides later."""
         torch = self.torch
         sx, sy = width / self.w, height / self.h
         window: deque[np.ndarray] = deque(maxlen=3)
         acc: dict[int, list[np.ndarray]] = {}
-        tracker = OnlineBallTracker()
-        out: list[BallState] = []
+        out: list[list[Blob]] = []
         next_out = 0
 
         def flush(upto: int) -> None:
             nonlocal next_out
             while next_out <= upto and next_out in acc:
                 hm = np.mean(acc.pop(next_out), axis=0)
-                out.append(tracker.step(next_out, heatmap_blobs(hm, self.threshold, sx, sy)))
+                out.append(heatmap_blobs(hm, self.threshold, sx, sy))
                 next_out += 1
 
         last = -1
@@ -173,6 +172,81 @@ class WasbBallDetector:
             flush(idx - 2)  # frame idx-2 has now received all its windows
         flush(last)
         while next_out <= last:  # clips shorter than 3 frames
-            out.append(tracker.step(next_out, []))
+            out.append([])
             next_out += 1
         return out
+
+    def track(self, frames: Iterable[tuple[int, np.ndarray]], width: int, height: int
+              ) -> list[BallState]:
+        """One ``BallState`` per frame, using the gated tracker (rejects glass reflections)."""
+        return track_gated(self.blobs(frames, width, height))
+
+
+def track_gated(
+    blob_lists: list[list[Blob]],
+    gate_px: float = 70.0,
+    vel_gain: float = 0.5,
+    max_gap: int = 8,
+    reacq_score: float = 0.6,
+    confirm: int = 2,
+) -> list[BallState]:
+    """Choose one ball per frame from all candidates, following the trajectory.
+
+    A reflection of the ball in the glass is a second blob far from where the real ball is going.
+    Instead of taking the strongest blob near the last position (the baseline), this tracker
+    predicts the next position from the last two (constant velocity), accepts only candidates
+    inside a small gate around the prediction and takes the closest one. When the track is lost
+    for more than ``max_gap`` frames, a new track starts only from a strong blob that is
+    confirmed by ``confirm`` consecutive frames (the first of them is then reported too).
+    Gaps are never filled: a frame with no accepted candidate is ``lost``.
+    """
+    n = len(blob_lists)
+    states = [BallState(frame=i, visibility="lost", conf=0.0) for i in range(n)]
+    last: np.ndarray | None = None
+    vel = np.zeros(2)
+    gap = 0
+    i = 0
+    while i < n:
+        blobs = blob_lists[i]
+        if last is not None and gap <= max_gap:
+            pred = last + vel * (gap + 1)
+            radius = gate_px + vel_gain * float(np.linalg.norm(vel)) * (gap + 1) + 20.0 * gap
+            best, best_cost = None, 1e9
+            for b in blobs:
+                d = float(np.hypot(b.u - pred[0], b.v - pred[1]))
+                if d <= radius and d - 20.0 * b.score < best_cost:
+                    best, best_cost = b, d - 20.0 * b.score
+            if best is not None:
+                new = np.array([best.u, best.v])
+                vel = 0.5 * vel + 0.5 * (new - last) / (gap + 1)
+                last, gap = new, 0
+                states[i] = BallState(frame=i, uv=(best.u, best.v), visibility="visible",
+                                      conf=min(1.0, best.score))
+            else:
+                gap += 1
+            i += 1
+            continue
+        # no active track: look for a confirmed start
+        started = False
+        for b in sorted(blobs, key=lambda x: -x.score):
+            if b.score < reacq_score:
+                break
+            chain, pos = [b], np.array([b.u, b.v])
+            for j in range(i + 1, min(n, i + confirm)):
+                nxt = [c for c in blob_lists[j]
+                       if np.hypot(c.u - pos[0], c.v - pos[1]) <= gate_px * 2]
+                if not nxt:
+                    break
+                c = min(nxt, key=lambda x: np.hypot(x.u - pos[0], x.v - pos[1]))
+                chain.append(c)
+                pos = np.array([c.u, c.v])
+            if len(chain) >= confirm:
+                last, vel, gap = np.array([b.u, b.v]), np.zeros(2), 0
+                states[i] = BallState(frame=i, uv=(b.u, b.v), visibility="visible",
+                                      conf=min(1.0, b.score))
+                started = True
+                break
+        if not started:
+            gap = max_gap + 1  # stay in search mode
+        i += 1
+    return states

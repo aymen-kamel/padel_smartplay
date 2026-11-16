@@ -32,3 +32,25 @@ untrained audio onset detector for hits. **Two clips and ~240 labelled ball fram
 1. The largest measurable gain is on the ball: **reject glass reflections** and **raise recall** (fine-tune on padel footage).
 2. Audio alone gives F1 of about 0.64-0.72 on hits; combining it with the ball's direction change and the nearest player's wrist is the next step.
 3. Every later change is now compared with these numbers.
+
+## Update 2026-11-16: glass-reflection rejection
+
+Change: the ball tracker now follows the trajectory (constant-velocity prediction, small gate around the
+prediction, closest candidate wins; a new track needs 2 consecutive confirming frames) instead of taking the
+strongest blob near the last position. The detection threshold was lowered from 0.5 to 0.3 so the tracker sees
+more candidates. Code: `track_gated` in `src/smartplay/ball/detector.py`; comparison: `scripts/compare_ball_trackers.py`.
+
+| Ball, both clips | P / R / F1 @ 5 px | P / R / F1 @ 10 px | Predictions in the wrong place (> 10 px) |
+|---|---|---|---|
+| Baseline (threshold 0.5, strongest blob) | 0.76 / 0.50 / 0.60 | 0.87 / 0.58 / 0.69 | 24 |
+| Gated tracker, threshold 0.5 | 0.86 / 0.52 / 0.65 | 0.96 / 0.58 / 0.72 | 6 |
+| **Gated tracker, threshold 0.3 (now the default)** | **0.87 / 0.59 / 0.70** | **0.96 / 0.65 / 0.77** | 8 |
+
+Measured end to end (re-run of `smartplay.cli annotate` on both clips, then `eval_benchmark.py`): same numbers.
+Clip 24, the one with reflections: F1 @ 5 px 0.53 -> 0.69.
+
+Limits, honestly:
+- The tracker's few parameters and the 0.3 threshold were chosen on these same two clips, so the gain may be
+  optimistic; it must be confirmed on new labelled clips.
+- **Recall is now the hard limit:** even a perfect choice among the model's candidates would find the ball in only
+  62-66 % of labelled frames at threshold 0.5. Raising it needs a better detector (fine-tuning on padel footage).

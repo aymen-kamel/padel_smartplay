@@ -51,11 +51,11 @@ def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_
     print(f"audio: {len(audio) / sr:.1f} s, {len(hits)} hit candidates")
 
     tb = time.time()
-    ball_det = WasbBallDetector(ball_weights)
+    ball_det = WasbBallDetector(ball_weights, threshold=0.3)  # 0.3 + gated tracker: best on the benchmark
     ball = ball_det.track(itertools.islice(iter_frames(video), n), info.width, info.height)
     del ball_det
     seen = sum(b.visibility == "visible" for b in ball)
-    print(f"ball (WASB tennis weights, zero-shot): seen in {seen}/{len(ball)} frames "
+    print(f"ball (WASB tennis weights, zero-shot, gated tracker): seen in {seen}/{len(ball)} frames "
           f"({100 * seen / max(1, len(ball)):.1f} %), {len(ball) / (time.time() - tb):.1f} fps")
 
     detector = PersonDetector(threshold)
