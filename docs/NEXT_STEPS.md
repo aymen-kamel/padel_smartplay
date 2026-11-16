@@ -44,3 +44,8 @@ Steps 1-2 below are finished (`scripts/eval_benchmark.py`). Glass-reflection rej
 - Top statistics bar added to the annotated video (`viz.compose_with_top_bar`, `analytics/player_stats.py`): per-player distance and speed from smoothed tracks (jitter and glitches ignored), clock, audio hit candidates, ball state. Ball speed is NOT shown (needs the 3D court model).
 - PadelTracker100 annotations downloaded to `data/external/padeltracker100/` (labels.zip, 70 MB, CC BY 4.0): ball boxes in COCO format (categories also include wall and shot events), player pose, homography, shot CSVs for the two 2022 Barcelona finals. They contain **no video frames**.
 - Fine-tuning the ball model is BLOCKED on the source videos: two YouTube matches (ids in record.json: Mdq42o4jdg0 and tCuZ6i-aVbY), sizes unknown, probably several GB each. A download over 2 GB needs the user's explicit OK (rule), and YouTube terms must be accepted by the user. `yt-dlp` is not installed.
+
+## Blocker found 2026-11-16: PadelTracker100 source videos are private
+yt-dlp reports "Private video" for both YouTube ids (Mdq42o4jdg0, tCuZ6i-aVbY). They cannot be downloaded without the owner's permission; using browser cookies to get around that was deliberately NOT done.
+Options: (1) ask the dataset authors (NTT Data; contact in the Data in Brief article, DOI 10.1016/j.dib.2026.112546) for the frames or the videos; (2) label ball positions ourselves on more footage (own club recordings, or other public padel videos whose terms allow it); (3) train from the PadelTracker100 labels only if the frames can be reconstructed from a legitimately obtained copy of the matches.
+The 70 MB of labels in data/external/padeltracker100/ stay useful for pose and shot-type work only once frames exist.
