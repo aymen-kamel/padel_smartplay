@@ -41,6 +41,8 @@ class PhysicsParams:
     max_fill: int = 6  # fill gaps up to this many frames
     recover_px: float = 8.0  # a raw candidate this close to the curve is taken as the ball
     min_pts_quad: int = 5  # points needed before the vertical parabola is trusted
+    extrapolate: int = 0  # frames predicted AFTER the last detection of a flight (0 = off); a contact may follow
+    min_pts_extrapolate: int = 5  # a flight needs this many points before it is extrapolated
 
 
 def _fit(t: np.ndarray, u: np.ndarray, v: np.ndarray, deg_v: int = 2) -> tuple[np.ndarray, np.ndarray]:
@@ -170,4 +172,14 @@ def refine_physics(states: list[BallState], blob_lists: list[list[Blob]] | None 
                     else:
                         out[f] = BallState(frame=f, uv=(float(p[0]), float(p[1])), visibility="inferred",
                                            conf=0.3)
+    if prm.extrapolate > 0:
+        for idx, fl in enumerate(flights):
+            if fl.fit is None or len(fl.pts) < prm.min_pts_extrapolate:
+                continue
+            nxt = flights[idx + 1].pts[0][0] if idx + 1 < len(flights) and flights[idx + 1].pts else n
+            for f in range(fl.pts[-1][0] + 1, min(n, nxt, fl.pts[-1][0] + 1 + prm.extrapolate)):
+                if out[f].uv is not None:
+                    break
+                p = fl.predict(f)
+                out[f] = BallState(frame=f, uv=(float(p[0]), float(p[1])), visibility="inferred", conf=0.2)
     return out, kinks

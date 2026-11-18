@@ -59,3 +59,15 @@ def test_raw_candidate_on_the_curve_is_recovered_as_visible():
     blobs[12] = [Blob(path[12][0] + 2, path[12][1] - 1, 0.5)]
     out, _ = refine_physics(states_from(path, drop={12}), blobs)
     assert out[12].visibility == "visible"
+
+
+def test_extrapolation_continues_the_parabola_after_the_last_detection():
+    from smartplay.ball.physics import PhysicsParams
+
+    path = parabola(40)
+    st = states_from(path[:25] + [None] * 15)
+    out, _ = refine_physics(st, None, PhysicsParams(extrapolate=4))
+    for f in (25, 26, 27, 28):
+        assert out[f].visibility == "inferred"
+        assert np.hypot(out[f].uv[0] - path[f][0], out[f].uv[1] - path[f][1]) < 2.0
+    assert out[29].uv is None  # beyond the horizon nothing is invented

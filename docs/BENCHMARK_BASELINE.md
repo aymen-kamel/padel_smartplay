@@ -93,3 +93,10 @@ Candidates: fused WASB + TrackNetV3 (above). Two clips, 743 labelled frames; par
   with high recall for a learned classifier** (ball, player and wrist features, trained on the 2 377 labelled hits).
 - What physics still needs: a **3D model** (gravity in metres, camera pose from heights), see the plan; the image-space
   parabola is only a local approximation under perspective.
+
+## Update 2026-11-18: physics prediction mode (`cli annotate --predict-ball N`)
+When the ball is not detected, the projectile path of the current flight fills short gaps and is extended up to N frames
+after its last detection; these points are drawn as a hollow cyan ring labelled "pred" and the top bar says
+"PREDICTED (physics)". They are estimates: measured on the two labelled clips, the predicted frames that have a label were
+within 10 px of the true ball in only 2 of 9 cases (N = 4) and 2 of 12 (N = 6); the rest follow a flight that had
+already ended (hit, bounce or glass). Off by default; use it to see what the physics expects, not as a measurement.

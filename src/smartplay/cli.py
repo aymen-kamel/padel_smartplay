@@ -22,7 +22,7 @@ DEFAULT_TRACKNET_WEIGHTS = _ROOT / "weights/tracknetv3_official/ckpts/TrackNet_b
 
 
 def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_frames: int | None,
-             ball_weights: Path = DEFAULT_BALL_WEIGHTS) -> None:
+             ball_weights: Path = DEFAULT_BALL_WEIGHTS, predict_ball: int = 0) -> None:
     import itertools
 
     import cv2
@@ -66,6 +66,12 @@ def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_
         del tn
         source = "WASB + TrackNetV3 merged"
     ball = track_gated(blobs)
+    if predict_ball > 0:  # physics mode: fill gaps and extend flights with the projectile path, marked 'inferred'
+        from smartplay.ball.physics import PhysicsParams, refine_physics
+
+        ball, _kinks = refine_physics(ball, blobs, PhysicsParams(extrapolate=predict_ball))
+        print(f"physics prediction: {sum(b.visibility == 'inferred' for b in ball)} frames estimated "
+              f"(estimates, mostly unreliable: see docs/BENCHMARK_BASELINE.md)")
     seen = sum(b.visibility == "visible" for b in ball)
     print(f"ball ({source}, zero-shot, gated tracker): seen in {seen}/{len(ball)} frames "
           f"({100 * seen / max(1, len(ball)):.1f} %), {len(ball) / (time.time() - tb):.1f} fps")
@@ -99,8 +105,8 @@ def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_
         viz.draw_ball(frame, ball, idx)
         near_hit = any(abs(idx - hf) <= 3 for hf in hit_frames)
         b = ball[idx] if idx < len(ball) else None
-        ball_text = (f"ball: seen (score {b.conf:.2f})" if b is not None and b.uv is not None
-                     else "ball: lost")
+        ball_text = ("ball: lost" if b is None or b.uv is None else
+                     "ball: PREDICTED (physics)" if b.visibility == "inferred" else f"ball: seen (score {b.conf:.2f})")
         viz.draw_hud(frame, idx, info.fps, near_hit, "not detected yet", ball_text)
         viz.draw_timeline(frame, env, hit_frames, idx, info.fps)
         stats.update(tracks)
@@ -132,6 +138,8 @@ def main() -> None:
     a.add_argument("--out", type=Path, required=True)
     a.add_argument("--threshold", type=float, default=0.5)
     a.add_argument("--max-frames", type=int, default=None)
+    a.add_argument("--predict-ball", type=int, default=0, metavar="N",
+                   help="physics mode: also predict the ball in gaps and up to N frames after a flight (0 = off)")
     e = sub.add_parser("export-replay", help="write the JSON read by viewer/heroscore.html")
     e.add_argument("--run", type=Path, required=True, help="a runs/<clip> folder from 'annotate'")
     e.add_argument("--fps", type=float, required=True)
@@ -146,7 +154,8 @@ def main() -> None:
         d = export_run(args.run, args.fps, args.out, args.title, args.score_before, args.score_after)
         print(f"wrote {args.out}: {d['n_frames']} frames, {len(d['players'])} players, {len(d['hits'])} hits")
         return
-    annotate(args.video, args.keypoints, args.out, args.threshold, args.max_frames)
+    annotate(args.video, args.keypoints, args.out, args.threshold, args.max_frames,
+             predict_ball=args.predict_ball)
 
 
 if __name__ == "__main__":

@@ -141,10 +141,11 @@ def draw_timeline(
 
 
 def draw_ball(img: np.ndarray, ball: list[BallState], frame: int, trail: int = 12) -> None:
-    """Ball position (magenta) with a short trail of recent detections; nothing when lost."""
+    """Detected ball: solid magenta with a short trail. Physics-predicted ball (``inferred``): hollow cyan ring
+    labelled "pred". Nothing when lost."""
     import cv2
 
-    pts = [b.uv for b in ball[max(0, frame - trail): frame + 1] if b.uv is not None]
+    pts = [b.uv for b in ball[max(0, frame - trail): frame + 1] if b.uv is not None and b.visibility == "visible"]
     for p, q in pairwise(pts):
         if np.hypot(p[0] - q[0], p[1] - q[1]) < 250:
             cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), (255, 0, 255), 2,
@@ -152,8 +153,12 @@ def draw_ball(img: np.ndarray, ball: list[BallState], frame: int, trail: int = 1
     cur = ball[frame] if frame < len(ball) else None
     if cur is not None and cur.uv is not None:
         c = (int(cur.uv[0]), int(cur.uv[1]))
-        cv2.circle(img, c, 10, (255, 0, 255), 2, cv2.LINE_AA)
-        cv2.circle(img, c, 3, (255, 0, 255), -1, cv2.LINE_AA)
+        if cur.visibility == "inferred":
+            cv2.circle(img, c, 12, (255, 255, 0), 2, cv2.LINE_AA)  # BGR cyan, hollow
+            _put(img, "pred", (c[0] + 14, c[1] - 8), 0.5, (255, 255, 0))
+        else:
+            cv2.circle(img, c, 10, (255, 0, 255), 2, cv2.LINE_AA)
+            cv2.circle(img, c, 3, (255, 0, 255), -1, cv2.LINE_AA)
 
 
 def draw_hud(
