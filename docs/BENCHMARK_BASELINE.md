@@ -54,3 +54,19 @@ Limits, honestly:
   optimistic; it must be confirmed on new labelled clips.
 - **Recall is now the hard limit:** even a perfect choice among the model's candidates would find the ball in only
   62-66 % of labelled frames at threshold 0.5. Raising it needs a better detector (fine-tuning on padel footage).
+
+## Update 2026-11-18: WASB vs TrackNet (old project's `ball_detection.pt`), same tracker, same labels
+
+Both detectors give candidate blobs at threshold 0.3; the same `track_gated` picks the ball; same two labelled clips
+(342 + 401 frames). Scripts: `scripts/dump_tracknet_blobs.py`, `scripts/dump_ball_blobs.py`, `scripts/compare_ball_trackers.py --blobs ...`.
+
+| Candidates from | P / R / F1 @ 5 px | P / R / F1 @ 10 px | Wrong place (> 10 px) | Candidate ceiling @ 10 px |
+|---|---|---|---|---|
+| WASB tennis weights (MIT) | 0.87 / 0.59 / 0.70 | 0.96 / 0.65 / 0.77 | 8 | 0.74 / 0.79 |
+| TrackNet (old project weights) | 0.70 / 0.56 / 0.62 | 0.92 / 0.75 / 0.82 | 18 | 0.82 / 0.85 |
+| **Both, merged (WASB first)** | **0.85 / 0.72 / 0.78** | **0.94 / 0.80 / 0.86** | 14 | 0.86 / 0.91 |
+
+- TrackNet finds the ball more often (higher recall) but places it less precisely and makes more wrong-place picks; WASB is the reverse. Merging their candidates gives the best result (+0.08 F1 at 5 px, +0.09 at 10 px).
+- Merge rule (one trial, not tuned): add a TrackNet candidate if no WASB candidate is within 12 px, with its score x 0.9.
+- Caveats: two clips from one broadcast video; TrackNet's background is the median of the clip itself (fine for a fixed camera, to re-check on cuts); **TrackNet weights' origin and licence are unverified** (flagged; experiment only, class loaded from the old project path, not copied); TrackNet costs more GPU/time than WASB (not measured here).
+- Not yet wired into `cli annotate`.

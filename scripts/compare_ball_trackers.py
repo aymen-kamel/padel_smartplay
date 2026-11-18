@@ -14,6 +14,8 @@ from smartplay.labeling.store import ClipLabels
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--clips", nargs="+", required=True)
+ap.add_argument("--blobs", default="ball_blobs", help="file stem under runs/<clip>/ (ball_blobs or ball_blobs_tracknet)")
+ap.add_argument("--min-score", type=float, default=0.0, help="drop candidates below this score")
 args = ap.parse_args()
 
 
@@ -53,7 +55,7 @@ def oracle(bl, gt, t=10):
 trackers = {"baseline (strongest near last)": baseline, "gated (trajectory)": track_gated}
 total = {name: {t: {"tp": 0, "fp1": 0, "fp2": 0, "fn": 0} for t in (5, 10)} for name in trackers}
 for clip in args.clips:
-    bl = [[Blob(*b) for b in fr] for fr in json.loads(Path(f"runs/{clip}/ball_blobs.json").read_text())]
+    bl = [[Blob(*b) for b in fr if b[2] >= args.min_score] for fr in json.loads(Path(f"runs/{clip}/{args.blobs}.json").read_text())]
     lab = ClipLabels.load(f"data/labels/{clip}.json")
     print(f"{clip}: candidate recall upper bound @10px = {oracle(bl, lab.ball):.2f}")
     for name, fn in trackers.items():
