@@ -39,7 +39,7 @@ def compose_with_top_bar(
     """
     import cv2
 
-    h, w = frame.shape[:2]
+    w = frame.shape[1]
     s = w / 1920.0
     bar = np.full((bar_h, w, 3), (28, 28, 28), np.uint8)
     cv2.line(bar, (0, bar_h - 1), (w, bar_h - 1), (90, 90, 90), 2)

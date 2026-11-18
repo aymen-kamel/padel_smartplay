@@ -13,6 +13,7 @@ Hit metric: one-to-one matching of predicted and labelled frames within +-k fram
 """
 
 import argparse
+from itertools import pairwise
 import json
 from pathlib import Path
 
@@ -94,7 +95,7 @@ for clip in args.clips:
             offs.append(h - near)
     res["hit_offset_frames"] = {"n": len(offs), "median": float(np.median(offs)) if offs else None}
     close = sorted(lab.hits)
-    res["labelled_hits_closer_than_5_frames"] = [(a, b) for a, b in zip(close, close[1:], strict=False) if b - a < 5]
+    res["labelled_hits_closer_than_5_frames"] = [(a, b) for a, b in pairwise(close) if b - a < 5]
     results[clip] = res
 
 print(f"{'':10s} " + "  ".join(f"ball@{t}px P/R/F1" for t in THRESH))
