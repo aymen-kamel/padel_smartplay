@@ -124,6 +124,7 @@ Plan, evaluation protocol (match-level splits, oracle ladder) and labelling quan
 - Only one short broadcast clip has been analysed; fixed-club-camera behaviour is unknown.
 
 ## Documentation
+**Start with [`docs/FLOORPLAN.md`](docs/FLOORPLAN.md)**: map of every component and integration, with status, licence and measured numbers.
 [`docs/PROJECT_EXPLAINED.md`](docs/PROJECT_EXPLAINED.md) (plain-language overview) ·
 [`docs/audit/`](docs/audit/) (what the earlier prototype really did, with evidence) ·
 [`docs/research/`](docs/research/) (state of the art, verified licences) ·
