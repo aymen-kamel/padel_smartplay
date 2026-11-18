@@ -128,3 +128,22 @@ far, 1 902 labelled hits, 1 643 predicted). Untrained detector, same default par
 | +-0.20 s | 0.79 | 0.85 |
 Per video (offset-corrected, +-0.12 s): median 0.86, worst 0.23, best 1.00. The offset (0.09 s) was estimated on the first 81 videos and
 applied to all 99, so the 0.80 is slightly optimistic. These numbers replace the 81-video ones above.
+
+## Update 2026-11-18: ball coverage on 8 other videos (one rally per tournament, first 500 frames, no labels)
+`scripts/ball_on_videos.py`. "Seen" = share of frames where the tracker reports a ball. It measures **coverage, not accuracy**:
+more detections can also mean more wrong ones (no ball labels exist for these videos).
+
+| Video | WASB alone | WASB + TrackNetV3 |
+|---|---|---|
+| VIGO_08 | 64.0 % | 77.6 % |
+| BRUSSEL_10 | 60.0 % | 76.4 % |
+| VALLADOLID_02 | 71.4 % | 79.8 % |
+| VALENCIA_03 | 60.8 % | 81.0 % |
+| MALAGA_04 | 73.6 % | 88.6 % |
+| FINLAND_07 | 82.4 % | 83.8 % |
+| MADRID_05 | 83.6 % | 82.4 % |
+| DUITSLAND_02 | 68.0 % | 69.4 % |
+| **Mean** | **70.5 %** | **79.9 %** |
+
+The fusion raises coverage in 7 of 8 videos (+9.4 points on average); in MADRID_05 it is slightly lower (-1.2). Overlay videos:
+`runs/ball_tests/`. To know whether the extra detections are right, some of these videos need hand-labelled ball positions.
