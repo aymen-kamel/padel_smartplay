@@ -132,7 +132,20 @@ def main() -> None:
     a.add_argument("--out", type=Path, required=True)
     a.add_argument("--threshold", type=float, default=0.5)
     a.add_argument("--max-frames", type=int, default=None)
+    e = sub.add_parser("export-replay", help="write the JSON read by viewer/heroscore.html")
+    e.add_argument("--run", type=Path, required=True, help="a runs/<clip> folder from 'annotate'")
+    e.add_argument("--fps", type=float, required=True)
+    e.add_argument("--out", type=Path, required=True)
+    e.add_argument("--title", default="")
+    e.add_argument("--score-before", default=None)
+    e.add_argument("--score-after", default=None)
     args = ap.parse_args()
+    if args.cmd == "export-replay":
+        from smartplay.export.replay import export_run
+
+        d = export_run(args.run, args.fps, args.out, args.title, args.score_before, args.score_after)
+        print(f"wrote {args.out}: {d['n_frames']} frames, {len(d['players'])} players, {len(d['hits'])} hits")
+        return
     annotate(args.video, args.keypoints, args.out, args.threshold, args.max_frames)
 
 

@@ -81,3 +81,10 @@ New repo `C:\dev\smartplay` (GitHub: aymen-kamel/padel_smartplay). Added after M
 
 ## Decision: licence relaxed for experimentation (user, 2026-11-15)
 Technical performance outranks licensing during the experiment phase; every component's licence is documented and reviewed before production. Research for the newly allowed options: `docs/research/EXPERIMENT_CANDIDATES.md`. Next: a small labelled benchmark (two highlight clips) so candidates can be compared with real numbers.
+
+## 2026-11-18 - 3D viewer on real data, brainstorm, physics post-processor
+- `docs/BRAINSTORM.md`: physics/logic ideas for score from video, ball in 3D + bounces, hits and shot types, tactics (ideas, not results).
+- `smartplay.cli export-replay` + `src/smartplay/export/replay.py`: one analysed clip -> compact JSON (players in metres, per-frame distance/speed, audio hits, scoreboard states). Ball in 3D stays null until the 3D calibration exists.
+- `viewer/heroscore.html`: the owner's HeroScore 3D page, with the random rally generator replaced by the measured positions (walk-cycle only: no swings or ball invented). Published to the owner's artifact; the previous version is saved in `viewer/original_backup/index.html`.
+- `ball/physics.py`: piecewise-parabola post-processor (tested, not wired: no benchmark gain; kinks = high-recall hit candidates).
+- CVSPORTS_Padel (2 377 labelled hits, 99 rallies): labels downloaded; video download in progress (per-file, resumable).
