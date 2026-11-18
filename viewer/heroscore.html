@@ -104,6 +104,7 @@ dl{margin:0}
 
   <div class="bar">
     <button class="play" id="play">Pause</button>
+    <div class="grp" id="clipgrp" style="display:none"><span>Clip</span><div class="seg" id="clipsel"></div></div>
     <div class="grp"><span>Speed</span>
       <div class="seg" id="speed"><button data-v="0.25" aria-pressed="false">0.25×</button><button data-v="0.5" aria-pressed="false">0.5×</button><button data-v="1" aria-pressed="true">1×</button></div>
     </div>
@@ -392,6 +393,9 @@ dl{margin:0}
   var smoothHist = 4;
 
   function prepare(){
+    pre = []; hitIdx = []; lastHeat = -1; cur = 0; hg.clearRect(0,0,100,200); heatTex.needsUpdate = true;
+    while (trailGroup.children.length) trailGroup.remove(trailGroup.children[0]);
+    trailLines = []; $('real').innerHTML = '';
     // per-player: smoothed positions, walk phase (from distance travelled) and a gait amplitude from speed
     D.players.forEach(function(p, i){
       var n = D.n_frames, sx = [], sz = [], ph = [], amp = [], acc = 0, a = 0;
@@ -407,7 +411,7 @@ dl{margin:0}
         ph.push(acc*4.2); amp.push(a);
       }
       pre[i] = {sx:sx, sz:sz, ph:ph, amp:amp};
-      rigs[i] = buildPlayer(p.team === 'A' ? 0 : 1, LOOKS[i % 4]);
+      if (!rigs[i]) rigs[i] = buildPlayer(p.team === 'A' ? 0 : 1, LOOKS[i % 4]);
       var lbl = $('pl'+i); lbl.className = 'plabel ' + (p.team === 'A' ? 'ta' : 'tb'); lbl.textContent = 'P' + p.id;
       // foot trail line (whole clip, drawn faint)
       var pts = []; for (f=0; f<n; f+=2) pts.push(sx[f], 0.02, sz[f]);
@@ -418,9 +422,9 @@ dl{margin:0}
     $('scrub').max = D.n_frames - 1;
     var ticks = $('ticks'); ticks.innerHTML = '';
     D.hits.forEach(function(h){ var t = document.createElement('i'); t.style.left = (h.frame/(D.n_frames-1)*100) + '%'; ticks.appendChild(t); });
-    $('sb-before').textContent = D.score.before || '–';
+    $('sb-before').textContent = D.score.before || 'no scoreboard in this clip';
     $('sb-after').textContent = D.score.after ? '→ ' + D.score.after : '';
-    $('sb-note').textContent = 'Scoreboard text read from the broadcast overlay (OCR).';
+    $('sb-note').textContent = D.score.before ? 'Scoreboard text read from the broadcast overlay (OCR).' : '';
     $('tagtxt').textContent = 'Padel 3D replay · ' + (D.title || 'real footage');
     var real = $('real');
     [['Player positions', 'measured on the court floor, in metres, from one camera (' + D.players.length + ' players tracked)', ''],
@@ -492,13 +496,23 @@ dl{margin:0}
   }
 
   say('Loading real match data…');
-  function start(j){
+  var started = false;
+  function startClip(j){
     D = j; prepare(); say('');
-    if (reduced){ paused = true; playBtn.textContent = 'Play'; }
-    frame();
+    if (!started){ started = true; if (reduced){ paused = true; playBtn.textContent = 'Play'; } frame(); }
   }
-  if (window.REPLAY_DATA){ start(window.REPLAY_DATA); }
-  else fetch('data/point_24.json').then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); }).then(start)
+  function offerClips(all){
+    var keys = Object.keys(all); if (keys.length < 2) return;
+    $('clipgrp').style.display = 'flex';
+    var box = $('clipsel'); box.innerHTML = '';
+    keys.forEach(function(k, n){
+      var b = document.createElement('button'); b.textContent = all[k].short || k; b.setAttribute('aria-pressed', String(n === 0));
+      b.onclick = function(){ box.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', String(x === b)); }); startClip(all[k]); };
+      box.appendChild(b);
+    });
+  }
+  if (window.REPLAYS){ var ks = Object.keys(window.REPLAYS); offerClips(window.REPLAYS); startClip(window.REPLAYS[ks[0]]); }
+  else fetch('data/point_24.json').then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); }).then(startClip)
     .catch(function(e){ say('Could not load data/point_24.json (' + e.message + '). Serve this folder over http.'); frame(); });
 })();
 </script>
