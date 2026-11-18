@@ -68,5 +68,5 @@ Both detectors give candidate blobs at threshold 0.3; the same `track_gated` pic
 
 - TrackNet finds the ball more often (higher recall) but places it less precisely and makes more wrong-place picks; WASB is the reverse. Merging their candidates gives the best result (+0.08 F1 at 5 px, +0.09 at 10 px).
 - Merge rule (one trial, not tuned): add a TrackNet candidate if no WASB candidate is within 12 px, with its score x 0.9.
-- Caveats: two clips from one broadcast video; TrackNet's background is the median of the clip itself (fine for a fixed camera, to re-check on cuts); **TrackNet weights' origin and licence are unverified** (flagged; experiment only, class loaded from the old project path, not copied); TrackNet costs more GPU/time than WASB (not measured here).
+- Caveats: two clips from one broadcast video; TrackNet's background is the median of the clip itself (fine for a fixed camera, to re-check on cuts); the TrackNet weights are **the official TrackNetV3 checkpoint** (qaz812345/TrackNetV3, MIT; verified identical to the official download by SHA-256 df867641a02712b0..., InpaintNet too; trained on badminton, not padel); the model class is still loaded from the old project path, not copied; TrackNet costs more GPU/time than WASB (not measured here).
 - Not yet wired into `cli annotate`.

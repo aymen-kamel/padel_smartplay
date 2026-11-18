@@ -28,3 +28,6 @@ SmartPlay AI includes or downloads the following third-party work. Each keeps it
 ## Libraries used at run time
 PyTorch (BSD-style), OpenCV (Apache-2.0), NumPy/SciPy (BSD), Pydantic (MIT), `rfdetr` (Apache-2.0),
 `imageio-ffmpeg` (BSD-2) bundling FFmpeg (LGPL/GPL build — used as a separate executable).
+
+## TrackNetV3 (ball detector, experiment)
+- Source: https://github.com/qaz812345/TrackNetV3 - weights `TrackNet_best.pt`, `InpaintNet_best.pt` (badminton shuttlecock training). Licence: MIT (stated by the repository for code and checkpoints). The network class used for inference is still loaded from the user's earlier project, to be replaced by an own re-implementation or the official code before release.
