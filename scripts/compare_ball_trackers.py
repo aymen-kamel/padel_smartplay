@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 
 from smartplay.ball.detector import Blob, OnlineBallTracker, track_gated
+from smartplay.ball.physics import refine_physics
 from smartplay.labeling.store import ClipLabels
 
 ap = argparse.ArgumentParser()
@@ -52,7 +53,8 @@ def oracle(bl, gt, t=10):
     return hit / max(1, sum(1 for g in gt.values() if g is not None))
 
 
-trackers = {"baseline (strongest near last)": baseline, "gated (trajectory)": track_gated}
+trackers = {"baseline (strongest near last)": baseline, "gated (trajectory)": track_gated,
+            "gated + physics post-proc": lambda bl: refine_physics(track_gated(bl), bl)[0]}
 total = {name: {t: {"tp": 0, "fp1": 0, "fp2": 0, "fn": 0} for t in (5, 10)} for name in trackers}
 for clip in args.clips:
     bl = [[Blob(*b) for b in fr if b[2] >= args.min_score] for fr in json.loads(Path(f"runs/{clip}/{args.blobs}.json").read_text())]

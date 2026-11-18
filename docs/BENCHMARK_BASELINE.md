@@ -70,3 +70,26 @@ Both detectors give candidate blobs at threshold 0.3; the same `track_gated` pic
 - Merge rule (one trial, not tuned): add a TrackNet candidate if no WASB candidate is within 12 px, with its score x 0.9.
 - Caveats: two clips from one broadcast video; TrackNet's background is the median of the clip itself (fine for a fixed camera, to re-check on cuts); the TrackNet weights are **the official TrackNetV3 checkpoint** (qaz812345/TrackNetV3, MIT; verified identical to the official download by SHA-256 df867641a02712b0..., InpaintNet too; trained on badminton, not padel); the model class is still loaded from the old project path, not copied; TrackNet costs more GPU/time than WASB (not measured here).
 - Not yet wired into `cli annotate`.
+
+## Update 2026-11-18: physics-based tracking, first results (negative)
+
+Candidates: fused WASB + TrackNetV3 (above). Two clips, 743 labelled frames; parameters not tuned except the kink sweep.
+
+| Tracker | F1 @ 5 px | F1 @ 10 px |
+|---|---|---|
+| `track_gated` (default) | **0.78** | **0.86** |
+| Image-space Kalman filter (projectile model, learned vertical acceleration), no smoothing | 0.75 | 0.81 |
+| Same + RTS smoothing + gap filling | 0.56 | 0.80 |
+| `track_gated` + piecewise-parabola post-processor (`ball/physics.py::refine_physics`) | 0.77 | 0.86 |
+
+- Why the Kalman variant lost: measured points are already precise (median error 2.5-3.4 px), so smoothing only moves them;
+  undetected contacts put several flights into one arc; the gate drops candidates after each contact. (Code deleted; numbers kept here.)
+- The post-processor fills gaps on the fitted curve: on clip 24, 0 of the 4 labelled filled frames were within 10 px,
+  and clip 12 gained 1 frame. **No position gain, so it is not wired into `cli annotate`.** The module stays (tested) for the 3D step.
+- **Kinks (flight breaks) as hit candidates:** with the default tolerance there are 67-72 kinks per ~340-frame clip for 11-13
+  labelled hits (precision 0.14-0.2) but recall is high: 83 % of labelled hits have a kink within +-3 frames, 92 % within +-5.
+  Keeping only turns >= 60 degrees gives F1 0.45 (+-3) / 0.53 (+-5). Audio only: 0.64 / 0.72. Audio AND kink: 0.65 / 0.74;
+  audio OR strong kink: 0.56 / 0.60. So hand-made rules do not beat audio; kinks are useful as **candidate generator
+  with high recall for a learned classifier** (ball, player and wrist features, trained on the 2 377 labelled hits).
+- What physics still needs: a **3D model** (gravity in metres, camera pose from heights), see the plan; the image-space
+  parabola is only a local approximation under perspective.
