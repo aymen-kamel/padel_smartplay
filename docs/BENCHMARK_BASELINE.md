@@ -119,3 +119,12 @@ far, 1 902 labelled hits, 1 643 predicted). Untrained detector, same default par
 - Per video, F1 at +-0.12 s: median 0.78, worst 0.03, best 1.00 -> some videos (noisy audio, music, crowd) fail badly.
 - On our two hand-labelled clips the F1 was 0.64 at +-3 frames; on 81 other videos it is 0.82 (offset-corrected): the first
   figure was pessimistic, but this is a different labelling convention, so the two are not directly comparable.
+
+### Final numbers on all 99 CVSPORTS rallies (download complete, 2.1 GB; 2 377 labelled hits, 2 029 predicted)
+| Tolerance | Raw F1 | F1 with the 0.09 s label offset removed (`--label-offset 0.09`) |
+|---|---|---|
+| +-0.06 s | 0.22 | 0.60 |
+| +-0.12 s | 0.55 | **0.80** (P 0.87, R 0.75) |
+| +-0.20 s | 0.79 | 0.85 |
+Per video (offset-corrected, +-0.12 s): median 0.86, worst 0.23, best 1.00. The offset (0.09 s) was estimated on the first 81 videos and
+applied to all 99, so the 0.80 is slightly optimistic. These numbers replace the 81-video ones above.

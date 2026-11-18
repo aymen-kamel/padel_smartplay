@@ -21,6 +21,8 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--dir", type=Path, default=Path("data/external/cvsports_padel"))
 ap.add_argument("--out", type=Path, default=Path("runs/cvsports_audio_hits.json"))
 ap.add_argument("--rel-min", type=float, default=4.0)
+ap.add_argument("--label-offset", type=float, default=0.0,
+                help="seconds removed from predictions (the dataset marks the START of a ~0.5 s hit window)")
 args = ap.parse_args()
 
 labels: dict[str, list[float]] = defaultdict(list)
@@ -36,7 +38,7 @@ for f in sorted(labels):
     if not (v.exists() and (args.dir / "rallies" / f"{f}.ok").exists()):
         continue
     audio = extract_audio(v, SR)
-    pred = [h.t for h in detect_hits(audio, SR, rel_min=args.rel_min)]
+    pred = [h.t - args.label_offset for h in detect_hits(audio, SR, rel_min=args.rel_min)]
     truth = sorted(labels[f])
     row = {"n_pred": len(pred), "n_true": len(truth)}
     for t in TOLS:

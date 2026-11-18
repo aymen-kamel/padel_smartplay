@@ -27,7 +27,7 @@ score automaton (FIP rules) ... fed today only by synthetic/OCR points; NOT yet 
 | Candidate merge | WASB first, add TrackNet where WASB has none | own | BUILT, MEASURED | fused: F1 **0.78 @5 px**, 0.86 @10 px | `ball/fusion.py` |
 | Gated tracker | picks one ball per frame, rejects glass reflections | own | BUILT, MEASURED | wrong-place picks 24 -> 8 | `ball/detector.py::track_gated` |
 | 2D physics post-processor | flights, kinks, gap fill, `--predict-ball` | own | PARTIAL | no position gain; predicted frames right in ~2 of 9 | `ball/physics.py` |
-| Audio hit detector | impact onsets, 2-7 kHz band | own | BUILT, MEASURED | F1 0.64 (2 clips), **0.82 (81 CVSPORTS clips, offset-corrected)** | `events/audio.py` |
+| Audio hit detector | impact onsets, 2-7 kHz band | own | BUILT, MEASURED | F1 0.64 (2 clips), **0.80 (99 CVSPORTS clips, offset-corrected)** | `events/audio.py` |
 | Floor homography | image -> court metres (floor only) | own | BUILT, MEASURED | fit 4.7 cm, leave-one-out 7.2 cm | `geometry/camera.py`, `geometry/court.py` |
 | Score automaton | FIP scoring (advantage / golden point, tie-breaks, sides) | own, FIP Rules 2026 | BUILT (tests) | not fed by video yet | `scoring/automaton.py` |
 | Scoreboard OCR | broadcast score timeline | RapidOCR, Apache-2.0 | BUILT, MEASURED | 29 of 29 transitions reachable | `broadcast/` |
