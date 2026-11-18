@@ -13,8 +13,8 @@ Hit metric: one-to-one matching of predicted and labelled frames within +-k fram
 """
 
 import argparse
-from itertools import pairwise
 import json
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
