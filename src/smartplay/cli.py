@@ -16,7 +16,9 @@ import json
 import time
 from pathlib import Path
 
-DEFAULT_BALL_WEIGHTS = Path(__file__).resolve().parents[2] / "weights/wasb/wasb_tennis_best.pth.tar"
+_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_BALL_WEIGHTS = _ROOT / "weights/wasb/wasb_tennis_best.pth.tar"
+DEFAULT_TRACKNET_WEIGHTS = _ROOT / "weights/tracknetv3_official/ckpts/TrackNet_best.pt"
 
 
 def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_frames: int | None,
@@ -26,7 +28,9 @@ def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_
     import cv2
 
     from smartplay.analytics.player_stats import PlayerStats
-    from smartplay.ball.detector import WasbBallDetector
+    from smartplay.ball.detector import WasbBallDetector, track_gated
+    from smartplay.ball.fusion import merge_blobs
+    from smartplay.ball.tracknet import TrackNetBallDetector
     from smartplay.events.audio import detect_hits, envelope_per_frame
     from smartplay.geometry.camera import CourtCamera
     from smartplay.ingestion.video import extract_audio, iter_frames, probe
@@ -53,10 +57,17 @@ def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_
 
     tb = time.time()
     ball_det = WasbBallDetector(ball_weights, threshold=0.3)  # 0.3 + gated tracker: best on the benchmark
-    ball = ball_det.track(itertools.islice(iter_frames(video), n), info.width, info.height)
+    blobs = ball_det.blobs(itertools.islice(iter_frames(video), n), info.width, info.height)
     del ball_det
+    source = "WASB"
+    if DEFAULT_TRACKNET_WEIGHTS.exists():  # second candidate source: finds more balls (benchmark: F1 +0.08)
+        tn = TrackNetBallDetector(DEFAULT_TRACKNET_WEIGHTS, threshold=0.3)
+        blobs = merge_blobs(blobs, tn.blobs(itertools.islice(iter_frames(video), n), info.width, info.height))
+        del tn
+        source = "WASB + TrackNetV3 merged"
+    ball = track_gated(blobs)
     seen = sum(b.visibility == "visible" for b in ball)
-    print(f"ball (WASB tennis weights, zero-shot, gated tracker): seen in {seen}/{len(ball)} frames "
+    print(f"ball ({source}, zero-shot, gated tracker): seen in {seen}/{len(ball)} frames "
           f"({100 * seen / max(1, len(ball)):.1f} %), {len(ball) / (time.time() - tb):.1f} fps")
 
     detector = PersonDetector(threshold)
