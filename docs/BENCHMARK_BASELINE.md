@@ -100,3 +100,22 @@ after its last detection; these points are drawn as a hollow cyan ring labelled 
 "PREDICTED (physics)". They are estimates: measured on the two labelled clips, the predicted frames that have a label were
 within 10 px of the true ball in only 2 of 9 cases (N = 4) and 2 of 12 (N = 6); the rest follow a flight that had
 already ended (hit, bounce or glass). Off by default; use it to see what the physics expects, not as a measurement.
+
+## Update 2026-11-18: audio hit detector on 81 other videos (CVSPORTS_Padel rallies)
+
+Dataset: 99 rallies from 9 tournaments, labelled by its authors (`scripts/eval_cvsports_hits.py`; 81 videos downloaded so
+far, 1 902 labelled hits, 1 643 predicted). Untrained detector, same default parameters as on our two clips.
+
+| Match tolerance | P | R | F1 |
+|---|---|---|---|
+| +-0.06 s | 0.26 | 0.23 | 0.24 |
+| +-0.12 s (3 frames) | 0.63 | 0.54 | 0.58 |
+| +-0.20 s | 0.88 | 0.76 | 0.81 |
+| +-0.12 s after removing a constant label offset of 0.09 s | 0.89 | 0.77 | **0.82** |
+
+- The dataset's hit time is the **start of a ~0.5 s window around the hit**, not the impact: our audio onset falls a median
+  +0.091 s after it (p10 +0.03, p90 +0.19), so the raw numbers under-state the detector. The offset is a property of these
+  labels, not a bias to correct in the detector (our own labels mark the impact frame).
+- Per video, F1 at +-0.12 s: median 0.78, worst 0.03, best 1.00 -> some videos (noisy audio, music, crowd) fail badly.
+- On our two hand-labelled clips the F1 was 0.64 at +-3 frames; on 81 other videos it is 0.82 (offset-corrected): the first
+  figure was pessimistic, but this is a different labelling convention, so the two are not directly comparable.
