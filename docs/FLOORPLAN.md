@@ -42,9 +42,11 @@ score automaton (FIP rules) ... fed today only by synthetic/OCR points; NOT yet 
 | CVSPORTS_Padel | 99 rallies, 2 377 labelled hits (Ghent/imec) | licence **not stated** | DATA, MEASURED | see hits row | `data/external/cvsports_padel/` |
 | PadelTracker100 labels | ball boxes, pose, shots (videos private) | CC BY 4.0 | DATA, unusable for training (no frames) | - | `data/external/padeltracker100/` |
 | 3D camera (DLT) | full projection from floor + height clicks; ray / point at height | own | BUILT, MEASURED | highlights main view: reprojection 5.2 px, leave-one-out 6.6 px, camera 8.1 m high | `geometry/camera3d.py`, `scripts/calibrate_3d.py` |
-| Ball in 3D | projectile fit per flight, plausibility filter | own | PARTIAL | with player + bounce priors: 32 % (clip 24) and 61 % (clip 12) of frames in 3D; not validated | `ball/ballistic3d.py`, `scripts/ball3d_clip.py` |
+| Ball in 3D | projectile fit per flight, player and bounce priors, joint bounce fit (z = 0 at contact) | own | PARTIAL, MEASURED | image fit 3.8 px median (131 labelled frames); 2 verified bounces (restitution 0.71 and 0.49, FIP ~0.74); depth still uncertain ~0.5-1 m; 35-64 % of frames in 3D | `ball/ballistic3d.py`, `scripts/ball3d_clip.py`, `scripts/check_ball3d_vs_labels.py` |
+| TrackNetV3 fine-tuned (trial) | pseudo-labels from CVSPORTS, 20 min | own, on CVSPORTS (licence not stated) | MEASURED: **no gain** | merged with WASB F1 0.758 vs 0.781 official | `scripts/build_ball_pseudolabels.py`, `scripts/train_tracknet.py`, `scripts/eval_tracknet_weights.py`; weights not used |
+| Runtime environment | one `.venv`, CUDA torch 2.7.1+cu118, RTX 3050 | own | VERIFIED 2026-11-19 | clip 24 gives identical counts to the old environment | `requirements.lock`, `weights/MODELS.md`, `src/smartplay/paths.py` |
 | Hit classifier + ball track | ball speed/turn/kinks added to the audio model | own | BUILT, MEASURED | F1 0.851 vs 0.847 audio only: no real gain | `scripts/train_hit_classifier_vision.py` |
-| Pose, shot types, point winner | - | - | NOT BUILT | - | - |
+| Shot types, point winner | - | - | NOT BUILT | - | - |
 
 Licence flags to clear before release: TrackNetV3 weights (MIT but trained on badminton data: check dataset terms),
 CVSPORTS_Padel (no licence stated), any use of PadelTracker100 frames (videos private). Details: `THIRD_PARTY_NOTICES.md`.
@@ -58,12 +60,19 @@ CVSPORTS_Padel (no licence stated), any use of PadelTracker100 frames (videos pr
   `architecture/`, `research/`, `audit/` (what the old project did wrong).
 - Local only (git-ignored): `data/`, `weights/`, `runs/`.
 
-## 4. The gap that matters
+## 4. Status summary (2026-11-19)
+- **Ball 2D:** WASB + TrackNetV3 fused, F1 0.78 @5 px (2 clips). Fine-tuning tried: no gain, not used. Ball visible in 79-85 % of frames.
+- **Ball 3D:** camera calibrated (5.2 px). Image fit good (3.8 px median). Depth is the open problem (uncertain ~0.5-1 m).
+- **Hits:** audio + learned classifier F1 0.85 (99 CVSPORTS rallies); ball kinks and pose add no real gain.
+- **Pose:** RTMPose-x (Apache) and YOLO26 (AGPL, experiment) both find ~99 % of players; accuracy not measured yet.
+- **Videos to look at:** `runs/point_12_3d/annotated_3d.mp4`, `runs/point_24_3d/annotated_3d.mp4` (3D ball, skeletons, verified bounces in white).
+
+## 5. The gap that matters
 Vision events (ball, hits) are not yet turned into points. Missing links, in order: typed bounces (needs the 3D camera) ->
 point segmentation -> point winner -> score automaton. Everything before that link is built and measured; everything
 after it is the score engine, which is built but only fed by OCR.
 
-## 5. Rule: how to keep this map true
+## 6. Rule: how to keep this map true
 Every new integration (model, dataset, script that produces a number) updates, **in the same commit**: the data-flow block
 (if it changes), one row in the register (source, licence, status, measured number with its benchmark), and the licence
 flags. Numbers come only from `BENCHMARK_BASELINE.md`; if there is no measurement the cell says "not validated".
