@@ -39,7 +39,7 @@ score automaton (FIP rules) ... fed today only by synthetic/OCR points; NOT yet 
 | CVSPORTS_Padel | 99 rallies, 2 377 labelled hits (Ghent/imec) | licence **not stated** | DATA, MEASURED | see hits row | `data/external/cvsports_padel/` |
 | PadelTracker100 labels | ball boxes, pose, shots (videos private) | CC BY 4.0 | DATA, unusable for training (no frames) | - | `data/external/padeltracker100/` |
 | Ball in 3D, bounces typed | needs 6 height clicks per camera | - | NOT BUILT | - | planned `geometry/camera3d.py` |
-| Hit classifier with vision | add ball kinks + player distance to the audio model | - | NOT BUILT (needs ~90 min compute) | - | - |
+| Hit classifier + ball track | ball speed/turn/kinks added to the audio model | own | BUILT, MEASURED | F1 0.851 vs 0.847 audio only: no real gain | `scripts/train_hit_classifier_vision.py` |
 | Pose, shot types, point winner | - | - | NOT BUILT | - | - |
 
 Licence flags to clear before release: TrackNetV3 weights (MIT but trained on badminton data: check dataset terms),

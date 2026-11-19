@@ -167,3 +167,20 @@ never in training. Same matching as before (+-0.12 s, label time + 0.09 s).
 - Ceiling: 8 % of labelled hits have no onset candidate within 0.12 s (soft hits masked by noise): audio alone cannot go above ~0.92 recall here.
 - Not yet combined with the ball trajectory (kinks) or the players; that needs the vision features on these videos
   (about 90 min of compute for the 99 rallies: to be confirmed before running).
+
+## Update 2026-11-19: adding the ball trajectory to the learned hit detector (`scripts/train_hit_classifier_vision.py`)
+Ball track (WASB + TrackNetV3 fused, gated, kinks) computed on all 99 rallies (~3 h on the RTX 3050). For each audio candidate:
+ball seen before/after, speed before/after, turn angle, vertical flip, distance to and turn of the nearest kink. Same
+leave-one-tournament-out folds and matching as the audio model. Players were not used (no court calibration for these videos).
+
+| Features | P | R | F1 (best threshold, 0.4) |
+|---|---|---|---|
+| Audio only | 0.85 | 0.84 | 0.847 |
+| Ball only (on the audio candidates) | 0.69 | 0.74 | 0.716 |
+| Audio + ball | 0.86 | 0.85 | **0.851** |
+
+**The ball adds almost nothing (+0.004 F1)**, although it carries real signal on its own (0.72). Reasons, measured or likely:
+the candidates are audio onsets, so the 8 % of hits without a sound peak are still unreachable; when there is a clear sound,
+the audio already decides; the 2D pixel trajectory is noisy around contacts (the ball is often lost right at the hit).
+The audio features stay the most useful ones. What could still help: ball-based candidates (kinks) for silent hits, the
+hitter's position/wrist (needs players and pose), and a 3D trajectory.
