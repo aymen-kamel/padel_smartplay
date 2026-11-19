@@ -366,3 +366,12 @@ the FAR half in 18 of 27: the detector and the camera geometry (camera behind th
 side) bias the two rules the same way, so they cannot separate winners. The hitter identification uses the ball's image position at the
 hit, not the wrist: that is the next thing to fix (pose already in the pipeline, RTMPose), and the first test to run after it.
 The 29 annotated videos are in runs/point_XX_fused/annotated.mp4.
+
+## Update 2026-11-20: last hitter by the wrist (`scripts/wrist_hitter_eval.py`), negative
+Method: at the last audio hit of each rally, RTMPose-x on that frame, the wrist closest to the ball pixel, its skeleton matched to a
+tracked player by ankles, that player's side -> team by shirt colour -> "last hitter's team wins".
+Result: **9 / 24 correct (38 %)**, 3 points without a usable wrist; the baseline "always red" is 16 / 27 (59 %).
+Why it fails (measured on the distances): the nearest wrist to the ball is often far away (median around 100 px, up to 270 px), so
+at the audio "last hit" the ball is not at a hand; the last audio hit of the rally is probably not the last shot (the detector
+finds sounds all over the rally, and "ball last seen + 10 frames" is a poor end-of-rally marker). Fixing this needs the real last
+contact of the rally, not the audio onset. Not pursued further in this session.
