@@ -261,3 +261,22 @@ the floor. **Coverage only: no pose labels exist, so keypoint accuracy is not me
 All three find almost every player. RTMPose-x matches YOLO26 on coverage and false skeletons with a permissive licence; it was
 run on CPU here (no onnxruntime-gpu installed), so its speed on the RTX 3050 is not measured. Without the far-half pass YOLO26 at
 640 px found only the near players. Next: label wrists/elbows on ~30 frames to measure accuracy before choosing for good.
+
+## Update 2026-11-19: checking the 3D ball against the hand labels (`scripts/check_ball3d_vs_labels.py`)
+**Image consistency** (3D point projected back with the camera, compared with the hand-labelled pixel; the labels are
+independent of the detector and of the 3D fit): 128 of the 271 labelled visible frames have a 3D position (47 %).
+Median error 3.8 px, 96 % within 10 px, 99 % within 20 px, worst 70 px; the 2D tracker on the same frames: median 2.2-2.3 px.
+No 3D position was placed on a frame labelled "ball not visible".
+
+**This does not validate depth**: a point moved along the camera ray projects to the same pixel. Two depth checks:
+- frames where the 2D tracker missed the ball but a 3D flight covers it: only **1** labelled frame (error 2 px): too few to
+  say anything (flights are grown on detections and rarely bridge gaps);
+- **floor contacts**: at a bounce the ball is at z = 0, so its pixel gives its true floor position through the floor
+  homography, independently of the 3D fit. 6 flights end near the floor: horizontal gap between the 3D landing point and that
+  floor point 0.36-2.19 m (median 0.93 m). Only one flight ends really at z ~ 0 (-0.03 m), with a 0.36 m gap; two end
+  ~0.3 m UNDER the floor; for the others (end height 0.25-0.57 m) the floor projection itself is off by up to ~1-2 m at that
+  distance, so their gap mixes both errors.
+
+Conclusion: the 3D curves fit the images well, but the depth is uncertain by roughly 0.5-1 m on these clips; 3D speeds and
+landing points must be shown as estimates, not measurements. The fix that targets exactly this: make the floor contact a hard
+constraint (z = 0 at the landing frame, the next flight starting there), then re-run this check.
