@@ -28,6 +28,7 @@ score automaton (FIP rules) ... fed today only by synthetic/OCR points; NOT yet 
 | Gated tracker | picks one ball per frame, rejects glass reflections | own | BUILT, MEASURED | wrong-place picks 24 -> 8 | `ball/detector.py::track_gated` |
 | 2D physics post-processor | flights, kinks, gap fill, `--predict-ball` | own | PARTIAL | no position gain; predicted frames right in ~2 of 9 | `ball/physics.py` |
 | Audio hit detector | impact onsets, 2-7 kHz band | own | BUILT, MEASURED | F1 0.64 (2 clips), **0.80 (99 CVSPORTS clips, offset-corrected)** | `events/audio.py` |
+| Learned hit classifier (audio) | candidates + gradient boosting, leave-one-tournament-out | own, scikit-learn (BSD) | BUILT, MEASURED | F1 **0.85** vs 0.80 untrained (99 CVSPORTS clips) | `events/learned.py`, `scripts/train_hit_classifier.py` |
 | Floor homography | image -> court metres (floor only) | own | BUILT, MEASURED | fit 4.7 cm, leave-one-out 7.2 cm | `geometry/camera.py`, `geometry/court.py` |
 | Score automaton | FIP scoring (advantage / golden point, tie-breaks, sides) | own, FIP Rules 2026 | BUILT (tests) | not fed by video yet | `scoring/automaton.py` |
 | Scoreboard OCR | broadcast score timeline | RapidOCR, Apache-2.0 | BUILT, MEASURED | 29 of 29 transitions reachable | `broadcast/` |
@@ -38,7 +39,7 @@ score automaton (FIP rules) ... fed today only by synthetic/OCR points; NOT yet 
 | CVSPORTS_Padel | 99 rallies, 2 377 labelled hits (Ghent/imec) | licence **not stated** | DATA, MEASURED | see hits row | `data/external/cvsports_padel/` |
 | PadelTracker100 labels | ball boxes, pose, shots (videos private) | CC BY 4.0 | DATA, unusable for training (no frames) | - | `data/external/padeltracker100/` |
 | Ball in 3D, bounces typed | needs 6 height clicks per camera | - | NOT BUILT | - | planned `geometry/camera3d.py` |
-| Hit classifier (learned) | fuse kinks + audio + wrist on 2 377 hits | - | NOT BUILT | - | - |
+| Hit classifier with vision | add ball kinks + player distance to the audio model | - | NOT BUILT (needs ~90 min compute) | - | - |
 | Pose, shot types, point winner | - | - | NOT BUILT | - | - |
 
 Licence flags to clear before release: TrackNetV3 weights (MIT but trained on badminton data: check dataset terms),

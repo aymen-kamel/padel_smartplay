@@ -147,3 +147,23 @@ more detections can also mean more wrong ones (no ball labels exist for these vi
 
 The fusion raises coverage in 7 of 8 videos (+9.4 points on average); in MADRID_05 it is slightly lower (-1.2). Overlay videos:
 `runs/ball_tests/`. To know whether the extra detections are right, some of these videos need hand-labelled ball positions.
+
+## Update 2026-11-19: learned audio hit detector (`events/learned.py`, `scripts/train_hit_classifier.py`)
+Candidates = onset peaks at a low threshold (5 914 over 99 rallies, covering 2 184 of 2 377 labelled hits = 92 % candidate
+recall at +-0.12 s); a gradient-boosted classifier (scikit-learn `HistGradientBoostingClassifier`) scores each from acoustic
+context (5 band energies after the onset and their contrast with before, centroid, flatness, decay, spacing to neighbours,
+local loudness); non-maximum suppression at 0.25 s. **Leave-one-tournament-out** (11 groups): the scored rallies' tournament is
+never in training. Same matching as before (+-0.12 s, label time + 0.09 s).
+
+| Detector | P | R | F1 |
+|---|---|---|---|
+| Untrained (`audio.detect_hits`) | 0.87 | 0.75 | 0.80 |
+| Learned, threshold 0.3 | 0.83 | 0.86 | **0.85** |
+| Learned, threshold 0.4 | 0.85 | 0.84 | **0.85** |
+| Learned, threshold 0.5 | 0.87 | 0.81 | 0.84 |
+
+- Gain: +0.05 F1, mostly recall (0.75 -> 0.84-0.86). The threshold was chosen on the same held-out scores (optimistic by ~1 point).
+- Most useful features: low-band (300-1000 Hz) contrast around the onset, spacing to the previous/next onset, neighbourhood strength.
+- Ceiling: 8 % of labelled hits have no onset candidate within 0.12 s (soft hits masked by noise): audio alone cannot go above ~0.92 recall here.
+- Not yet combined with the ball trajectory (kinks) or the players; that needs the vision features on these videos
+  (about 90 min of compute for the 99 rallies: to be confirmed before running).

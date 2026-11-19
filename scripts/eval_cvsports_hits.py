@@ -26,7 +26,9 @@ ap.add_argument("--label-offset", type=float, default=0.0,
 args = ap.parse_args()
 
 labels: dict[str, list[float]] = defaultdict(list)
-for r in csv.DictReader(open(args.dir / "metadata/hits.csv", encoding="utf-8")):
+with open(args.dir / "metadata/hits.csv", encoding="utf-8") as fh:
+    rows = list(csv.DictReader(fh))
+for r in rows:
     labels[r["filename"]].append(float(r["start"]))
 
 SR = 16000
