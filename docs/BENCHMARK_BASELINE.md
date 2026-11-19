@@ -302,3 +302,20 @@ Image consistency unchanged (median 3.8 px, 95 % within 10 px, 131 labelled fram
 the floor (flights not joined), and only 2 bounces pass the physics check over 743 frames, so most flights still have free depth.
 The landing-point agreement is partly built in (B is fitted to the pixels around the contact); the restitution 0.71 is the more
 independent sign that the first bounce is real.
+
+## Update 2026-11-19: TrackNetV3 fine-tuned on CVSPORTS pseudo-labels (first trial, 20 min) — no gain
+Pseudo-labels: 30 CVSPORTS rallies, 15,543 confident ball positions (balls detected with detected neighbours on a smooth path).
+Training: 1,982 iterations, batch 4, lr 1e-4, focal BCE on confident frames only. Test: our hand labels on point_12 and point_24,
+never used in training. Scripts: `scripts/build_ball_pseudolabels.py`, `scripts/train_tracknet.py`, `scripts/eval_tracknet_weights.py`.
+
+| Weights | Mode | F1 @ 5 px | F1 @ 10 px | Ball where the label says none |
+|---|---|---|---|---|
+| official TrackNetV3 | alone | 0.623 | 0.823 | 0 |
+| fine-tuned (trial) | alone | 0.633 | 0.838 | 1 |
+| official + WASB | merged | **0.781** | **0.865** | 0 |
+| fine-tuned + WASB | merged | 0.758 | 0.850 | 1 |
+
+Reading: the alone-gain (+0.01 to +0.015) is within the noise of ~270 labelled frames from one video; the merged result is slightly
+worse. The training loss fell to 5e-5, i.e. the pseudo-labels are easy to reproduce: the model learns its own confident detections,
+not the difficult cases (fast balls, glass, players in front), which is exactly where the errors are. Decision: no long run
+(1-2 h) on these labels. The useful next data is hand labels on hard frames, not more pseudo-labels.
