@@ -280,3 +280,25 @@ No 3D position was placed on a frame labelled "ball not visible".
 Conclusion: the 3D curves fit the images well, but the depth is uncertain by roughly 0.5-1 m on these clips; 3D speeds and
 landing points must be shown as estimates, not measurements. The fix that targets exactly this: make the floor contact a hard
 constraint (z = 0 at the landing frame, the next flight starting there), then re-run this check.
+
+### Floor bounce as a hard constraint (`ball/ballistic3d.py::join_bounces`)
+Two consecutive flights (gap <= 8 frames) are refitted as one path through a floor point B: z = 0 exactly at the bounce instant,
+shared point, vz_out = -e * vz_in with the restitution e left free (0.3-1.0) as an independent physical check.
+Separate fits are NOT used to choose candidates: they often disagree at a contact (clip 12, frame 30: one ends 0.28 m under the
+floor, the next starts at 2.69 m two frames later), which is the depth error itself.
+
+First version (any close pair, accepted if it reprojects within 6 px): 6 "bounces", but 4 of them were physically wrong
+(e stuck on the 0.3 / 1.0 bounds, or horizontal speed x2.55 after the "bounce", i.e. a racket hit): with free depth the model
+can push almost any contact to the floor. Acceptance now also requires 0.45 <= e <= 0.95 and no more than a 2x horizontal gain
+(the horizontal ratio is poorly determined: 1.30 measured for a true 0.81 on a simulated bounce; a test covers the simulated case:
+landing point within 0.3 m, e within 0.12).
+
+| Clip | Bounce | e (FIP ball ~0.74) | 3D landing vs floor point of the nearest hand label | Before (separate fits) |
+|---|---|---|---|---|
+| point_12 | frame 32.1 | **0.71** | **0.17 m** (label 0.9 frame away) | flight ended 0.28 m under the floor, 1.13 m off |
+| point_24 | frame 159.3 | 0.49 | **0.05 m** (label 0.3 frame away) | not detected as a bounce |
+
+Image consistency unchanged (median 3.8 px, 95 % within 10 px, 131 labelled frames). Remaining: 5 frames of clip 12 still under
+the floor (flights not joined), and only 2 bounces pass the physics check over 743 frames, so most flights still have free depth.
+The landing-point agreement is partly built in (B is fitted to the pixels around the contact); the restitution 0.71 is the more
+independent sign that the first bounce is real.

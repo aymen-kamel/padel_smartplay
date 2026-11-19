@@ -12,7 +12,7 @@ from pathlib import Path
 
 import numpy as np
 
-from smartplay.ball.ballistic3d import fit_flights, states_with_3d
+from smartplay.ball.ballistic3d import fit_flights, join_bounces, states_with_3d
 from smartplay.ball.physics import refine_physics
 from smartplay.geometry.camera3d import Camera3D
 from smartplay.schemas.records import BallState
@@ -34,6 +34,11 @@ if tracks_file.exists():
     for r in json.loads(tracks_file.read_text()):
         players.setdefault(r["frame"], []).append(tuple(r["foot_xy_m"]))
 flights = fit_flights(states, cam, args.fps, players=players or None)
+flights, bounces = join_bounces(states, flights, cam, args.fps)
+for bo in bounces:
+    print(f"  BOUNCE at frame {bo.t_frame:6.1f}: floor point ({bo.xy[0]:+.2f}, {bo.xy[1]:+.2f}) m, restitution {bo.restitution:.2f} "
+          f"(FIP ball ~0.74), horizontal speed kept {bo.horiz_ratio:.2f}, joint fit {bo.rms_px:.1f} px "
+          f"(separate fits {bo.rms_before_px:.1f} px)")
 seen = sum(s.visibility == "visible" for s in states)
 covered = sum(fl.f1 - fl.f0 + 1 for fl in flights)
 print(f"{len(states)} frames, ball seen in {seen}; {len(kinks)} kinks; {len(flights)} flights fitted in 3D "
@@ -49,5 +54,7 @@ out = states_with_3d(states, flights, args.fps)
     "fps": args.fps,
     "flights": [{"f0": fl.f0, "f1": fl.f1, "p0": fl.p0.tolist(), "v0": fl.v0.tolist(), "rms_px": fl.rms_px,
                  "n_obs": fl.n_obs, "end_contact": fl.end_contact, "anchor": fl.anchor} for fl in flights],
+    "bounces": [{"t_frame": bo.t_frame, "xy": bo.xy, "restitution": bo.restitution, "horiz_ratio": bo.horiz_ratio,
+                 "rms_px": bo.rms_px} for bo in bounces],
     "xyz": [list(s.xyz_m) if s.xyz_m else None for s in out]}))
 print(f"wrote {args.run / 'ball3d.json'}")

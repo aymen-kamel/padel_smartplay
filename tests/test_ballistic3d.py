@@ -63,3 +63,29 @@ def test_player_prior_is_used_when_it_fits_as_well():
     flights = fit_flights(states, cam, fps, players=players)
     assert flights and flights[0].anchor == "player"
     assert np.linalg.norm(flights[0].at(0, fps) - path[0]) < 0.3
+
+
+def test_bounce_join_recovers_landing_point_and_restitution():
+    from smartplay.ball.ballistic3d import join_bounces
+
+    cam, P = camera()
+    fps = 25.0
+    B, tb, e = np.array([0.5, 5.0, 0.0]), 0.6, 0.74
+    v_in = np.array([0.3, 8.0, -6.0])
+    v_out = np.array([0.25, 6.5, 6.0 * e])
+    t = np.arange(0, 30) / fps
+    path = []
+    for ti in t:
+        d = ti - tb
+        v = v_in if ti < tb else v_out
+        path.append(B + v * d + np.array([0, 0, -0.5 * G * d * d]))
+    uv = project(P, np.array(path)) + np.random.default_rng(3).normal(0, 0.8, (len(path), 2))
+    states = [BallState(frame=i, uv=(float(u), float(v)), visibility="visible", conf=0.9) for i, (u, v) in enumerate(uv)]
+    flights = fit_flights(states, cam, fps)
+    assert len(flights) >= 2
+    joined, bounces = join_bounces(states, flights, cam, fps)
+    assert len(bounces) == 1
+    bo = bounces[0]
+    assert np.hypot(bo.xy[0] - B[0], bo.xy[1] - B[1]) < 0.3
+    assert abs(bo.restitution - e) < 0.12
+    assert abs(bo.t_frame - tb * fps) < 1.0

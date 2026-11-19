@@ -190,3 +190,103 @@ def states_with_3d(states: list[BallState], flights: list[Flight3D], fps: float)
                 out[f] = BallState(frame=s.frame, uv=s.uv, xyz_m=tuple(float(v) for v in fl.at(f, fps)),
                                    visibility=s.visibility if s.uv is not None else "inferred", conf=s.conf)
     return out
+
+
+@dataclass(frozen=True)
+class Bounce:
+    t_frame: float  # bounce instant, in (fractional) frames
+    xy: tuple[float, float]  # landing point on the floor (m), z = 0 exactly
+    restitution: float  # fitted vertical restitution |vz_out| / |vz_in| (FIP ball ~ 0.74: an independent check)
+    horiz_ratio: float  # horizontal speed after / before (< 1 expected: friction)
+    rms_px: float  # reprojection error of the joint fit over both flights
+    rms_before_px: float  # mean of the two separate fits, for comparison
+
+
+def _obs(states: list[BallState], f0: int, f1: int):
+    pts = [(s.frame, s.uv) for s in states[f0:f1 + 1] if s.uv is not None and s.visibility == "visible"]
+    return np.array([f for f, _ in pts], float), np.array([u for _, u in pts], float)
+
+
+def join_bounces(states: list[BallState], flights: list[Flight3D], cam, fps: float, max_gap: int = 8,
+                 max_rms_px: float = 6.0, max_speed_kmh: float = 160.0, tried: list | None = None
+                 ) -> tuple[list[Flight3D], list[Bounce]]:
+    """Refit pairs of consecutive flights that meet near the floor as ONE path through a floor bounce.
+
+    Hard constraints: the ball is at z = 0 at the bounce instant tb (one shared point B for both arcs); before tb it
+    arrives with v_in (vz < 0), after tb it leaves with v_out where vz_out = -e * vz_in. The horizontal velocity after the
+    bounce and the restitution e (bounded 0.3-1.0) are free, so the fitted e is an independent physical check.
+    The pair is replaced only if the joint fit reprojects within ``max_rms_px`` and stays plausible.
+    """
+    from scipy.optimize import least_squares
+
+    out = list(flights)
+    bounces: list[Bounce] = []
+    k = 0
+    while k + 1 < len(out):
+        a, b = out[k], out[k + 1]
+        # separate fits often disagree at a contact (wrong depth on each side), so their heights are not used to
+        # decide; any close pair is tried and the images decide (joint reprojection error, plausibility)
+        if b.f0 - a.f1 > max_gap:
+            k += 1
+            continue
+        fa, ua = _obs(states, a.f0, a.f1)
+        fb, ub = _obs(states, b.f0, b.f1)
+        frames = np.concatenate([fa, fb])
+        uv = np.vstack([ua, ub])
+        t = (frames - a.f0) / fps
+        n_a = len(fa)
+
+        def path(x, t=t, n_a=n_a):
+            bx, by, tb, vix, viy, viz, vox, voy, e = x
+            B = np.array([bx, by, 0.0])
+            d = t - tb
+            v_in, v_out = np.array([vix, viy, viz]), np.array([vox, voy, -e * viz])
+            v = np.where((np.arange(len(t)) < n_a)[:, None], v_in, v_out)
+            return B + v * d[:, None] + np.outer(-0.5 * G * d * d, [0, 0, 1.0])
+
+        def resid(x, uv=uv, path=path):
+            return (project(cam.P, path(x)) - uv).ravel()
+
+        tb0 = (0.5 * (a.f1 + b.f0) - a.f0) / fps
+        land = a.at(a.f1, fps)
+        vin = a.v0 + np.array([0, 0, -G * (a.f1 - a.f0) / fps])
+        x0 = np.array([land[0], land[1], tb0, vin[0], vin[1], min(vin[2], -0.5), b.v0[0], b.v0[1], 0.74])
+        lo = [-7, -12, (a.f1 - a.f0 - 2) / fps, -60, -60, -40, -60, -60, 0.3]
+        hi = [7, 12, (b.f0 - a.f0 + 2) / fps, 60, 60, -0.1, 60, 60, 1.0]
+        x0 = np.clip(x0, np.array(lo) + 1e-6, np.array(hi) - 1e-6)
+        r = least_squares(resid, x0, bounds=(lo, hi), loss="soft_l1", f_scale=3.0, max_nfev=600)
+        err = np.linalg.norm(resid(r.x).reshape(-1, 2), axis=1)
+        rms = float(np.sqrt(np.mean(err**2)))
+        bx, by, tb, vix, viy, viz, vox, voy, e = r.x
+        v_in, v_out = np.array([vix, viy, viz]), np.array([vox, voy, -e * viz])
+        speeds = [np.linalg.norm(v_in + [0, 0, G * tb]) * 3.6, np.linalg.norm(v_in) * 3.6, np.linalg.norm(v_out) * 3.6]
+        p = path(r.x)
+        hz_in, hz_out = np.linalg.norm(v_in[:2]), np.linalg.norm(v_out[:2])
+        # physical acceptance: a floor bounce keeps 45-95 % of the vertical speed (FIP ball ~74 %; values stuck on the
+        # 0.3 / 1.0 bounds mean the model forced a bounce that is not there) and does not speed up horizontally
+        # (a clear horizontal gain means a racket hit; the horizontal ratio is poorly determined with one camera,
+        # 1.30 measured for a true 0.81 on a simulated bounce, so only a gain above 2x is used to reject)
+        if tried is not None:  # every attempt, accepted or not, for reporting
+            tried.append({"frames": (a.f0, b.f1), "t_frame": float(a.f0 + tb * fps), "e": float(e), "rms_px": rms,
+                          "horiz_ratio": float(hz_out / max(hz_in, 1e-6)), "max_kmh": float(max(speeds)),
+                          "z_min": float(p[:, 2].min())})
+        if (rms > max_rms_px or max(speeds) > max_speed_kmh or p[:, 2].min() < -0.05
+                or not (0.45 <= e <= 0.95) or hz_out > 2.0 * hz_in):
+            k += 1
+            continue
+        B = np.array([bx, by, 0.0])
+        tb_frame = a.f0 + tb * fps
+        t0 = 0.0  # flight A rebuilt from the joint fit, drawn until the bounce
+        p0_a = B + v_in * (t0 - tb) + np.array([0, 0, -0.5 * G * (t0 - tb) ** 2])
+        v0_a = v_in + np.array([0, 0, -G * (t0 - tb)])
+        f1_a = max(a.f1, int(np.floor(tb_frame)))
+        f0_b = min(b.f0, int(np.ceil(tb_frame)))
+        tB = (f0_b - a.f0) / fps - tb
+        p0_b = B + v_out * tB + np.array([0, 0, -0.5 * G * tB * tB])
+        v0_b = v_out + np.array([0, 0, -G * tB])
+        out[k] = Flight3D(a.f0, f1_a, p0_a, v0_a, rms, a.n_obs, "floor", a.anchor)
+        out[k + 1] = Flight3D(f0_b, b.f1, p0_b, v0_b, rms, b.n_obs, b.end_contact, "bounce")
+        bounces.append(Bounce(float(tb_frame), (float(bx), float(by)), float(e), float(hz_out / max(hz_in, 1e-6)),
+                              rms, 0.5 * (a.rms_px + b.rms_px)))
+        k += 1
+    return out, bounces
