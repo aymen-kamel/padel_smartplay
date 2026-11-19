@@ -44,9 +44,10 @@ def mean_vel(pts):
 X_v = np.zeros((len(y), len(VN)))
 for i in range(len(y)):
     d = vis[names[vid[i]]]
-    fr = int(round(times[i] * d["fps"]))
+    fr = round(times[i] * d["fps"])
     ball = d["ball"]
-    def pt(k):
+
+    def pt(k, ball=ball):
         if 0 <= k < len(ball) and ball[k][1] is not None:
             return (k, ball[k][1], ball[k][2])
         return None
