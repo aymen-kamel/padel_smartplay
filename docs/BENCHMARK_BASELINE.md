@@ -350,3 +350,19 @@ biased the same way: the last hitter is "far" in 7 of 9 clips and the ball is la
 on the near side leaves the frame (the camera is behind the near baseline). What is needed first is more points with a known
 winner: the highlights have 29 main-view clips but only 9 single-point scoreboard changes; the owner can mark the winner of the
 other 20 by eye in a few minutes, and full-match footage is needed for a real test.
+
+## Update 2026-11-19: point winner on 27 hand-labelled points (`scripts/point_winner_eval_all.py`)
+Truth: the owner's red/dark answers by shirt colour (27 points; 2 "unclear" skipped). The near team's colour is read from the
+shirts (red vs dark: a* of the torso) on every clip; red was the top row of the scoreboard in the 8 points where both are known.
+
+| Rule | Correct |
+|---|---|
+| last hitter's team wins | 12 / 25 (48 %) |
+| team on whose half the ball was last seen loses | 12 / 27 (44 %) |
+| always red (majority) | 16 / 27 (59 %) baseline |
+
+Both rules are below the baseline. Why, measured: the "last hitter" is on the FAR side in 18 of 27 clips and the ball is last seen on
+the FAR half in 18 of 27: the detector and the camera geometry (camera behind the near baseline, the ball leaves the frame on the near
+side) bias the two rules the same way, so they cannot separate winners. The hitter identification uses the ball's image position at the
+hit, not the wrist: that is the next thing to fix (pose already in the pipeline, RTMPose), and the first test to run after it.
+The 29 annotated videos are in runs/point_XX_fused/annotated.mp4.
