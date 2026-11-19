@@ -329,3 +329,24 @@ over time: does the picked sequence follow a ballistic 3D path? On point_24 fram
 tracker's picks gave 63 px RMS, and a fit to the hand labels 46 px, because that window also contains a contact (the fit is
 confounded). Next honest step, if pursued: fit short windows that contain no contact and compare reflection-track and true-track
 fit errors over many clips, not two.
+
+## Update 2026-11-19: point winner, first test (`scripts/point_winner_eval.py`)
+Ground truth: the 9 broadcast points whose scoreboard change is exactly one point (clips 06, 09, 10, 11, 12, 18, 19, 21, 24).
+Pipeline (`cli annotate`) run on the 7 new clips: ball seen in 62-82 % of frames, players observed in 90-100 % of player-frames.
+
+**Teams by shirt colour**: on every clip the near and far teams separate cleanly in Lab colour (one team red, a ~ 172-180,
+b ~ 149-157; the other dark, a ~ 138-141, b ~ 112-118). Check (by hand, from the score): with ends changing after every odd
+cumulative game, the predicted near team matches the observed shirt colour in 8 of 9 clips (point_24 does not match: OCR'd score or
+the rule at set changes, not investigated). The link "shirt colour <-> scoreboard row" is one unknown bit for the whole match.
+
+| Rule | Correct (colour X = top row) | Correct (colour X = bottom row) |
+|---|---|---|
+| last hitter's team wins | 6 / 9 | 3 / 9 |
+| team on whose half the ball was last seen loses | 3 / 9 | 6 / 9 |
+| always the bottom row (majority) | 6 / 9 | 6 / 9 |
+
+**No rule beats the majority baseline (6/9 = 67 %).** With 9 points nothing can be concluded either way; and the two rules are
+biased the same way: the last hitter is "far" in 7 of 9 clips and the ball is last seen on the far half in 6 of 9, because a ball
+on the near side leaves the frame (the camera is behind the near baseline). What is needed first is more points with a known
+winner: the highlights have 29 main-view clips but only 9 single-point scoreboard changes; the owner can mark the winner of the
+other 20 by eye in a few minutes, and full-match footage is needed for a real test.
