@@ -319,3 +319,13 @@ Reading: the alone-gain (+0.01 to +0.015) is within the noise of ~270 labelled f
 worse. The training loss fell to 5e-5, i.e. the pseudo-labels are easy to reproduce: the model learns its own confident detections,
 not the difficult cases (fast balls, glass, players in front), which is exactly where the errors are. Decision: no long run
 (1-2 h) on these labels. The useful next data is hand labels on hard frames, not more pseudo-labels.
+
+## Update 2026-11-19: glass reflections, what a single-frame mirror test can and cannot do
+Wrong-place picks (> 10 px, labelled visible): 6 on point_12, 8 on point_24 (frames 45-54 and 318-333, the glass reflection pattern
+from the first benchmark). A reflection is the mirror image of the ball across the glass, so its image lies on the same camera
+ray as a point beyond the glass. A ray inside the court is therefore consistent with both the real ball and its reflection: a
+single-frame geometric test (is the point inside the court, is it behind the glass) cannot separate them. The available evidence is
+over time: does the picked sequence follow a ballistic 3D path? On point_24 frames 42-54 the test was inconclusive: a fit to the
+tracker's picks gave 63 px RMS, and a fit to the hand labels 46 px, because that window also contains a contact (the fit is
+confounded). Next honest step, if pursued: fit short windows that contain no contact and compare reflection-track and true-track
+fit errors over many clips, not two.
