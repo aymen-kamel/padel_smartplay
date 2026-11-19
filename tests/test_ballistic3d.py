@@ -83,7 +83,7 @@ def test_bounce_join_recovers_landing_point_and_restitution():
     states = [BallState(frame=i, uv=(float(u), float(v)), visibility="visible", conf=0.9) for i, (u, v) in enumerate(uv)]
     flights = fit_flights(states, cam, fps)
     assert len(flights) >= 2
-    joined, bounces = join_bounces(states, flights, cam, fps)
+    _, bounces = join_bounces(states, flights, cam, fps)
     assert len(bounces) == 1
     bo = bounces[0]
     assert np.hypot(bo.xy[0] - B[0], bo.xy[1] - B[1]) < 0.3

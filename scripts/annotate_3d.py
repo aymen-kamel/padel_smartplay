@@ -50,7 +50,7 @@ for r in json.loads((args.run / "tracks.json").read_text()):
     tracks.setdefault(r["frame"], []).append(r)
 verified = [(b["t_frame"], np.array([b["xy"][0], b["xy"][1], 0.0])) for b in b3.get("bounces", [])]
 # floor contacts: verified bounces (joint fit, restitution checked) in white; other flights ending low in grey ("floor?")
-bounces = [(int(round(tf)), xyz, True) for tf, xyz in verified]
+bounces = [(round(tf), xyz, True) for tf, xyz in verified]
 bounces += [(fl.f1, fl.at(fl.f1, fps), False) for fl in flights if fl.end_contact == "floor"
             and not any(abs(fl.f1 - tf) <= 3 for tf, _ in verified)]
 
