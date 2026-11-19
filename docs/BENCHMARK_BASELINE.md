@@ -184,3 +184,18 @@ the candidates are audio onsets, so the 8 % of hits without a sound peak are sti
 the audio already decides; the 2D pixel trajectory is noisy around contacts (the ball is often lost right at the hit).
 The audio features stay the most useful ones. What could still help: ball-based candidates (kinks) for silent hits, the
 hitter's position/wrist (needs players and pose), and a 3D trajectory.
+
+## Update 2026-11-19: pose features for the hit detector (`scripts/pose_hit_features.py`)
+Pose (yolo26m-pose from the earlier project, Ultralytics **AGPL-3.0: experiment only**, to replace before release) on the frame of
+each of the 5 914 audio candidates: nearest wrist to the ball (divided by the person's height), second nearest, distance to the
+nearest person box, wrist above shoulder, number of people. Same leave-one-tournament-out folds.
+
+| Features | F1 (best threshold) |
+|---|---|
+| Audio | 0.847 |
+| Pose only | 0.661 (P 0.56, R 0.80) |
+| Audio + ball | 0.851 |
+| Audio + ball + pose | 0.851 |
+
+Pose carries signal on its own but nothing the audio does not already say: no gain. The limit is the candidate set (audio onsets
+only), not the features; next test: candidates from the ball trajectory.

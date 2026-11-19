@@ -96,14 +96,21 @@ def run(X, label):
 
 print(f"{len(names)} videos, {len(y)} candidates, ball seen around {np.mean(X_v[:, 0] > 0):.0%} of candidates")
 res = {"audio": run(X_a, "audio"), "ball": run(X_v, "ball only"), "audio+ball": run(np.hstack([X_a, X_v]), "audio + ball")}
+PN: list[str] = []
+X_p = np.zeros((len(y), 0))
+if Path("runs/pose_hit_features.npz").exists():  # pose features from scripts/pose_hit_features.py
+    zp = np.load("runs/pose_hit_features.npz")
+    X_p, PN = zp["F"], [str(n) for n in zp["names"]]
+    res["pose"] = run(X_p, "pose only")
+    res["audio+ball+pose"] = run(np.hstack([X_a, X_v, X_p]), "audio+ball+pose")
 for k, (p, r, f1, thr) in res.items():
     print(f"BEST {k:11s}: F1 {f1:.3f} (P {p:.2f} R {r:.2f}, thr {thr})")
 clf = HistGradientBoostingClassifier(max_depth=4, learning_rate=0.06, max_iter=250, l2_regularization=1.0,
-                                     class_weight="balanced", random_state=0).fit(np.hstack([X_a, X_v]), y)
+                                     class_weight="balanced", random_state=0).fit(np.hstack([X_a, X_v, X_p]), y)
 from sklearn.inspection import permutation_importance
 
-pi = permutation_importance(clf, np.hstack([X_a, X_v])[::3], y[::3], n_repeats=3, random_state=0, scoring="roc_auc")
-top = sorted(zip(FEATURE_NAMES + VN, pi.importances_mean, strict=True), key=lambda t: -t[1])[:8]
+pi = permutation_importance(clf, np.hstack([X_a, X_v, X_p])[::3], y[::3], n_repeats=3, random_state=0, scoring="roc_auc")
+top = sorted(zip(FEATURE_NAMES + VN + PN, pi.importances_mean, strict=True), key=lambda t: -t[1])[:8]
 print("most useful:", ", ".join(f"{n} ({v:.3f})" for n, v in top))
 Path("runs/hit_classifier_vision.json").write_text(json.dumps(
     {k: [round(v[0], 3), round(v[1], 3), round(v[2], 3), v[3]] for k, v in res.items()}, indent=1))
