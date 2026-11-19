@@ -30,6 +30,7 @@ score automaton (FIP rules) ... fed today only by synthetic/OCR points; NOT yet 
 | Audio hit detector | impact onsets, 2-7 kHz band | own | BUILT, MEASURED | F1 0.64 (2 clips), **0.80 (99 CVSPORTS clips, offset-corrected)** | `events/audio.py` |
 | Learned hit classifier (audio) | candidates + gradient boosting, leave-one-tournament-out | own, scikit-learn (BSD) | BUILT, MEASURED | F1 **0.85** vs 0.80 untrained (99 CVSPORTS clips) | `events/learned.py`, `scripts/train_hit_classifier.py` |
 | Pose (hit features) | wrist-ball distance at each candidate | yolo26m-pose, Ultralytics **AGPL-3.0, experiment only** | MEASURED | pose alone F1 0.66; no gain when added (0.851) | `scripts/pose_hit_features.py` |
+| Ball-kink hit candidates | trajectory breaks added to audio onsets | own | MEASURED | ceiling 0.92 -> 0.98; F1 +0.01-0.02 (same code path) | `scripts/ball_candidates_eval.py` |
 | Floor homography | image -> court metres (floor only) | own | BUILT, MEASURED | fit 4.7 cm, leave-one-out 7.2 cm | `geometry/camera.py`, `geometry/court.py` |
 | Score automaton | FIP scoring (advantage / golden point, tie-breaks, sides) | own, FIP Rules 2026 | BUILT (tests) | not fed by video yet | `scoring/automaton.py` |
 | Scoreboard OCR | broadcast score timeline | RapidOCR, Apache-2.0 | BUILT, MEASURED | 29 of 29 transitions reachable | `broadcast/` |

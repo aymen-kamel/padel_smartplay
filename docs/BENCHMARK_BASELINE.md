@@ -199,3 +199,20 @@ nearest person box, wrist above shoulder, number of people. Same leave-one-tourn
 
 Pose carries signal on its own but nothing the audio does not already say: no gain. The limit is the candidate set (audio onsets
 only), not the features; next test: candidates from the ball trajectory.
+
+## Update 2026-11-19: hit candidates from the ball trajectory (`scripts/ball_candidates_eval.py`)
+Candidates = audio onsets **plus** ball-trajectory kinks (kink frame + 0 or + 4 frames). Audio features are recomputed over all
+candidates of a video; ball features without the kink-distance columns (they would leak: a kink candidate is always at distance 0).
+Same leave-one-tournament-out folds; A and B are computed by the same code, so they compare fairly with each other.
+
+| Candidates | Candidate ceiling (labels with a candidate within 0.12 s) | F1 (best threshold) |
+|---|---|---|
+| A: audio onsets only | 0.92 | 0.828 |
+| B: audio + kinks (+0 frames) | **0.98** | 0.838 |
+| B: audio + kinks (+4 frames) | 0.96 | **0.847** |
+
+- Ball kinks do reach the silent hits: the ceiling rises from 92 % to 96-98 %. The classifier converts only part of it: +0.010 to
+  +0.019 F1 (the +4 frame offset was chosen on these same results, so +0.019 is optimistic).
+- Variant A (0.828) is lower than the earlier 0.851 because this script drops the kink-distance features; the best overall
+  number is still ~0.85. The remaining errors need better evidence at the candidate (3D ball, hitter's wrist trajectory over
+  several frames), not more candidates.
