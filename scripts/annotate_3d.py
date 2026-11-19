@@ -48,7 +48,11 @@ flights = [Flight3D(f["f0"], f["f1"], np.array(f["p0"]), np.array(f["v0"]), f["r
 tracks: dict[int, list[dict]] = {}
 for r in json.loads((args.run / "tracks.json").read_text()):
     tracks.setdefault(r["frame"], []).append(r)
-bounces = [(fl.f1, fl.at(fl.f1, fps)) for fl in flights if fl.end_contact == "floor"]
+verified = [(b["t_frame"], np.array([b["xy"][0], b["xy"][1], 0.0])) for b in b3.get("bounces", [])]
+# floor contacts: verified bounces (joint fit, restitution checked) in white; other flights ending low in grey ("floor?")
+bounces = [(int(round(tf)), xyz, True) for tf, xyz in verified]
+bounces += [(fl.f1, fl.at(fl.f1, fps), False) for fl in flights if fl.end_contact == "floor"
+            and not any(abs(fl.f1 - tf) <= 3 for tf, _ in verified)]
 
 SKELETON = [(5, 7), (7, 9), (6, 8), (8, 10), (5, 6), (5, 11), (6, 12), (11, 12), (11, 13), (13, 15), (12, 14), (14, 16),
             (0, 5), (0, 6)]
@@ -130,12 +134,13 @@ for idx, frame in iter_frames(args.video):
                 if kc[j] > 0.3:
                     cv2.circle(frame, pt(kp[j]), 4, (255, 255, 255), -1, cv2.LINE_AA)
     # bounces: white ring on the floor for 2 s after landing
-    for f_b, xyz in bounces:
+    for f_b, xyz, ok in bounces:
         if 0 <= idx - f_b <= 2 * fps:
+            col, txt = ((255, 255, 255), "bounce") if ok else ((150, 150, 150), "floor?")
             ring = np.array([[xyz[0] + 0.25 * np.cos(a), xyz[1] + 0.25 * np.sin(a), 0.0] for a in np.linspace(0, 2 * np.pi, 24)])
-            cv2.polylines(frame, [project(P, ring).astype(np.int32)], True, (255, 255, 255), 2, cv2.LINE_AA)
-            cv2.putText(frame, "bounce", pt(project(P, np.array([[xyz[0], xyz[1], 0.0]]))[0] + [12, -6]),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2, cv2.LINE_AA)
+            cv2.polylines(frame, [project(P, ring).astype(np.int32)], True, col, 2, cv2.LINE_AA)
+            cv2.putText(frame, txt, pt(project(P, np.array([[xyz[0], xyz[1], 0.0]]))[0] + [12, -6]),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, col, 2, cv2.LINE_AA)
     ball_text = "ball: lost"
     fl = next((f for f in flights if f.f0 <= idx <= f.f1), None)
     if fl is not None:
@@ -159,4 +164,5 @@ for idx, frame in iter_frames(args.video):
     frame = viz.compose_with_top_bar(frame, stats.snapshot(), idx / fps, 0, ball_text)
     writer.write(frame)
 writer.release()
-print(f"wrote {args.out}: {len(flights)} flights in 3D, {len(bounces)} floor bounces")
+print(f"wrote {args.out}: {len(flights)} flights in 3D, {len(verified)} verified bounces, "
+      f"{len(bounces) - len(verified)} unverified floor contacts")
