@@ -216,3 +216,20 @@ Same leave-one-tournament-out folds; A and B are computed by the same code, so t
 - Variant A (0.828) is lower than the earlier 0.851 because this script drops the kink-distance features; the best overall
   number is still ~0.85. The remaining errors need better evidence at the candidate (3D ball, hitter's wrist trajectory over
   several frames), not more candidates.
+
+## Update 2026-11-19: 3D camera and first ball-in-3D fits (clip 24)
+**Camera** (`geometry/camera3d.py`, DLT): 12 floor points + 11 height points clicked by the owner with `scripts/calibrate_3d.py`
+(a first attempt had the height points clicked on the floor: camera 511 m under the floor, rejected; the tool now refuses
+such clicks). Result: reprojection 5.2 px, leave-one-out 6.6 px; camera at x 0.08 m, y -26.0 m (16 m behind the near baseline),
+height 8.1 m. Largest residuals: the two net-post tops (15 px). The 3D court drawn back on the frame sits on the lines,
+the net top and the back glass (`data/calibration/highlights_main_view_3d_check.png`).
+
+**Ball** (`ball/ballistic3d.py`): a flight grows while one projectile (g = 9.81 m/s^2, no drag) explains the 2D detections
+(rms <= 6 px); fits that are implausible (under the floor, outside the court + 1.5 m, faster than 160 km/h) are dropped.
+On clip 24 (401 frames, ball seen in 317): **5 flights, 59 frames in 3D (15 %)**, speeds 17-90 km/h, one flight ending on
+the floor, one at the back glass. Without the speed cap, 3 more flights came out at 193-209 km/h: not credible, a sign of the
+one-camera depth ambiguity on short flights (8 frames = 0.27 s: the ball drops only ~36 cm, a few pixels).
+One kept flight ends 1.3 m behind the back glass: also suspect.
+
+Not validated: no 3D ground truth exists. What should make it reliable: start each flight at the hitter (players are known in
+metres), chain flights through floor bounces (z = 0 and restitution link two arcs), and longer flights.
