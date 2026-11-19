@@ -24,6 +24,7 @@ from smartplay.ball.ballistic3d import Flight3D
 from smartplay.geometry.camera import CourtCamera
 from smartplay.geometry.camera3d import project
 from smartplay.ingestion.video import iter_frames, probe
+from smartplay.paths import YOLO26_POSE, rtmpose_body
 from smartplay.schemas.records import PlayerTrack
 from smartplay.viz import annotate as viz
 
@@ -57,7 +58,7 @@ pose_fn = None
 if args.pose == "yolo":
     from ultralytics import YOLO
 
-    model = YOLO(r"C:\Users\dell\OneDrive\Bureau\pfe\padel_analytics_repo\padel_analytics_repo\weights\yolo26m-pose.pt")
+    model = YOLO(str(YOLO26_POSE))
 
     # far half of the court, from the floor to 2.4 m high, as an image box (players there are ~50 px tall)
     _far = np.array([[x, y, z] for x in (-6.0, 6.0) for y in (0.0, 10.5) for z in (0.0, 2.4)])
@@ -85,9 +86,7 @@ if args.pose == "yolo":
             kp, kc = np.concatenate([kp, kp2[keep]]), np.concatenate([kc, kc2[keep]])
         return kp, kc
 elif args.pose == "rtm":
-    from rtmlib import Body
-
-    body = Body(mode="balanced", backend="onnxruntime", device="cuda")
+    body = rtmpose_body("performance", device="cpu")  # GPU needs onnxruntime-gpu (CUDA 12): see docs/MIGRATION.md
 
     def pose_fn(img):
         kp, sc = body(img)

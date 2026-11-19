@@ -38,27 +38,44 @@ and refilled by unlimited interpolation, and no ground truth anywhere.
 
 ## Quick start
 
+Everything needed lives in this folder: code, one Python environment, all model files in `weights/`
+(see [`weights/MODELS.md`](weights/MODELS.md) for sources, licences and SHA-256). Nothing is read from the
+earlier PFE project or from library caches.
+
+**Install (Windows, NVIDIA GPU; validated on an RTX 3050 6 GB, driver 610.60, CUDA 11.8 build of torch):**
+
 ```
 py -3.11 -m venv .venv
+.venv\Scripts\python -m pip install torch==2.7.1+cu118 torchvision==0.22.1+cu118 --index-url https://download.pytorch.org/whl/cu118
+.venv\Scripts\python -m pip install -r requirements.lock
 .venv\Scripts\python -m pip install -e .[dev]
-.venv\Scripts\python -m pytest                       # score engine, geometry, metrics
-.venv\Scripts\python scripts\demo_score.py --mode golden_point --seed 3   # simulated match
+.venv\Scripts\python -m pytest
 ```
 
-Analyse a video (needs the vision stack: OpenCV, SciPy, PyTorch + CUDA, `rfdetr`,
-`imageio-ffmpeg`; not part of the base install yet):
+`requirements.lock` is the exact list of versions that passed the tests. RTMPose runs on the CPU in this setup
+(ONNX Runtime CPU build); GPU for RTMPose needs `onnxruntime-gpu` with CUDA 12, see [`docs/MIGRATION.md`](docs/MIGRATION.md).
+
+**Model files** must be in `weights/` (they are not in git): the WASB tennis model, the TrackNetV3 checkpoint,
+RF-DETR Small, the RTMPose and YOLOX ONNX files, and optionally YOLO26-pose (AGPL, experiments only).
+Each is listed in `weights/MODELS.md` with its SHA-256; check them after copying.
+
+**Analyse a video** (fixed camera, 12 clicked court points in a JSON list):
 
 ```
-python -m smartplay.cli annotate --video data/raw/rally.mp4 ^
-    --keypoints data/calibration/rally_court_keypoints.json --out runs/rally
+.venv\Scripts\python -m smartplay.cli annotate --video dataawally.mp4 ^
+    --keypoints data\calibrationally_court_keypoints.json --out runsally
 ```
-Writes `annotated.mp4` (court lines, players with team and side, mini-map, ball with trail,
-audio loudness timeline with hit candidates), `tracks.json`, `ball.json`, `audio_hits.json`.
-`--keypoints` is a JSON list of the 12 clicked court points (layout in
-[`geometry/camera.py`](src/smartplay/geometry/camera.py)).
-Weights are downloaded on first use: RF-DETR Small COCO (368 MB, Apache-2.0) and the WASB
-tennis model (6 MB, MIT, place it in `weights/wasb/`).
 
+Writes `annotated.mp4` (court lines, players with team and side, mini-map, ball with trail, stats bar,
+audio hit candidates), `tracks.json`, `ball.json`, `audio_hits.json`. Options: `--predict-ball N` (physics estimates,
+drawn as hollow rings). The 3D ball, skeletons and the replay page are produced by `scripts/calibrate_3d.py`,
+`scripts/ball3d_clip.py`, `scripts/annotate_3d.py` and `smartplay.cli export-replay`.
+
+Checked on 2026-11-19: the clip `point_24` gives the same counts in this environment as in the earlier one
+(ball seen in 317/401 frames, players observed in 1604/1604 player-frames).
+
+Data, weights and run outputs are git-ignored (`data/`, `weights/`, `runs/`, `.venv/`, `*.pt`, `*.onnx`, `*.mp4`, ...).
+Only `weights/MODELS.md` is tracked in `weights/`.
 
 ### Test on a broadcast highlights video (11 min, Premier Padel)
 `scripts/segment_broadcast.py` + `scripts/analyze_highlights.py` + `scripts/export_clips.py`

@@ -18,13 +18,14 @@ import numpy as np
 
 from smartplay.ball.detector import WasbBallDetector
 from smartplay.ingestion.video import ffmpeg_exe
+from smartplay.paths import WASB_TENNIS
 from smartplay.players.detector import PersonDetector
 from smartplay.viz.annotate import _put, draw_ball
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--video", type=Path, required=True)
 ap.add_argument("--run", type=Path, required=True)
-ap.add_argument("--weights", type=Path, default=Path("weights/wasb/wasb_tennis_best.pth.tar"))
+ap.add_argument("--weights", type=Path, default=WASB_TENNIS)
 args = ap.parse_args()
 
 segs = json.loads((args.run / "segments.json").read_text())

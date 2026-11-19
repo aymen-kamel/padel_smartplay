@@ -9,11 +9,12 @@ from pathlib import Path
 
 from smartplay.ball.detector import WasbBallDetector
 from smartplay.ingestion.video import iter_frames, probe
+from smartplay.paths import WASB_TENNIS
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--video", type=Path, required=True)
 ap.add_argument("--out", type=Path, required=True)
-ap.add_argument("--weights", type=Path, default=Path("weights/wasb/wasb_tennis_best.pth.tar"))
+ap.add_argument("--weights", type=Path, default=WASB_TENNIS)
 ap.add_argument("--threshold", type=float, default=0.5)
 args = ap.parse_args()
 

@@ -16,9 +16,8 @@ import json
 import time
 from pathlib import Path
 
-_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_BALL_WEIGHTS = _ROOT / "weights/wasb/wasb_tennis_best.pth.tar"
-DEFAULT_TRACKNET_WEIGHTS = _ROOT / "weights/tracknetv3_official/ckpts/TrackNet_best.pt"
+from smartplay.paths import TRACKNETV3 as DEFAULT_TRACKNET_WEIGHTS
+from smartplay.paths import WASB_TENNIS as DEFAULT_BALL_WEIGHTS
 
 
 def annotate(video: Path, keypoints: Path, out_dir: Path, threshold: float, max_frames: int | None,

@@ -18,6 +18,7 @@ import numpy as np
 
 from smartplay.geometry.camera import CourtCamera
 from smartplay.geometry.camera3d import project
+from smartplay.paths import YOLO26_POSE, rtmpose_body
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--model", required=True, choices=["yolo", "rtm-balanced", "rtm-performance"])
@@ -33,7 +34,7 @@ P = np.array(json.loads(Path("data/calibration/highlights_main_view_3d.json").re
 if args.model == "yolo":
     from ultralytics import YOLO
 
-    model = YOLO(r"C:\Users\dell\OneDrive\Bureau\pfe\padel_analytics_repo\padel_analytics_repo\weights\yolo26m-pose.pt")
+    model = YOLO(str(YOLO26_POSE))
     far = project(P, np.array([[x, y, z] for x in (-6.0, 6.0) for y in (0.0, 10.5) for z in (0.0, 2.4)]))
     FB = (max(0, int(far[:, 0].min())), max(0, int(far[:, 1].min()) - 10), int(far[:, 0].max()), int(far[:, 1].max()) + 10)
 
@@ -53,9 +54,7 @@ if args.model == "yolo":
             kp, kc = np.concatenate([kp, kp2[keep]]), np.concatenate([kc, kc2[keep]])
         return kp, kc
 else:
-    from rtmlib import Body
-
-    body = Body(mode=args.model.split("-")[1], backend="onnxruntime", device="cpu")
+    body = rtmpose_body(args.model.split("-")[1], device="cpu")
 
     def run(img):
         kp, sc = body(img)
@@ -63,9 +62,9 @@ else:
         if kp.size == 0:
             return np.zeros((0, 17, 2)), np.zeros((0, 17))
         return kp.reshape(-1, 17, 2), sc.reshape(-1, 17)
-
-# score threshold: rtmlib scores are not probabilities (SimCC), yolo scores are; use each library's usual cut
-THR = 0.3 if args.model == "yolo" else 0.3
+# score threshold: the same 0.3 cut for both libraries (rtmlib SimCC scores are not probabilities: the "complete"
+# column is therefore not comparable across libraries, coverage is)
+THR = 0.3
 res = {"near": [0, 0], "far": [0, 0], "complete": [0, 0], "extra": 0, "frames": 0, "seconds": 0.0}
 for clip, video in CLIPS.items():
     tracks: dict[int, list] = {}

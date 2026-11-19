@@ -16,8 +16,10 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from smartplay.paths import YOLO26_POSE
+
 DIR = Path("data/external/cvsports_padel")
-POSE = Path(r"C:\Users\dell\OneDrive\Bureau\pfe\padel_analytics_repo\padel_analytics_repo\weights\yolo26m-pose.pt")
+POSE = YOLO26_POSE
 L_WRIST, R_WRIST, L_SH, R_SH = 9, 10, 5, 6
 NAMES = ["n_people", "wrist_ball_min", "wrist_ball_2nd", "box_ball_min", "wrist_above_shoulder", "near_person_h", "ball_known"]
 

@@ -24,8 +24,11 @@ class PersonDetector:
     def __init__(self, threshold: float = 0.5) -> None:
         from rfdetr import RFDETRSmall
 
+        from smartplay.paths import RFDETR_SMALL
+
         self.threshold = threshold
-        self.model = RFDETRSmall()
+        # load the copy in weights/ (never the library cache / a download); see weights/MODELS.md
+        self.model = RFDETRSmall(pretrain_weights=str(RFDETR_SMALL))
 
     def detect(self, frame_bgr: np.ndarray) -> list[Detection]:
         rgb = np.ascontiguousarray(frame_bgr[:, :, ::-1])

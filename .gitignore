@@ -5,10 +5,18 @@ __pycache__/
 .ruff_cache/
 # data, weights and run outputs never go into git
 data/
-weights/
 runs/
+# weights: every file ignored except the model list
+weights/*
+!weights/MODELS.md
 experiments/results/
 *.mp4
 *.pt
 *.pth
 *.pkl
+*.onnx
+*.tar
+*.zip
+*.npz
+*.safetensors
+*.ckpt

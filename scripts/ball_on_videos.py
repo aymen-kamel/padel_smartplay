@@ -17,14 +17,15 @@ from smartplay.ball.detector import WasbBallDetector, track_gated
 from smartplay.ball.fusion import merge_blobs
 from smartplay.ball.tracknet import TrackNetBallDetector
 from smartplay.ingestion.video import iter_frames, probe
+from smartplay.paths import TRACKNETV3, WASB_TENNIS
 from smartplay.viz.annotate import draw_ball
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--videos", nargs="+", type=Path, required=True)
 ap.add_argument("--overlay-dir", type=Path, default=None)
 ap.add_argument("--max-frames", type=int, default=500)
-ap.add_argument("--wasb", type=Path, default=Path("weights/wasb/wasb_tennis_best.pth.tar"))
-ap.add_argument("--tracknet", type=Path, default=Path("weights/tracknetv3_official/ckpts/TrackNet_best.pt"))
+ap.add_argument("--wasb", type=Path, default=WASB_TENNIS)
+ap.add_argument("--tracknet", type=Path, default=TRACKNETV3)
 ap.add_argument("--out", type=Path, default=Path("runs/ball_on_videos.json"))
 args = ap.parse_args()
 
