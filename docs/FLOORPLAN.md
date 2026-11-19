@@ -40,7 +40,8 @@ score automaton (FIP rules) ... fed today only by synthetic/OCR points; NOT yet 
 | Label tool + benchmark | hand labels, P/R/F1 | own | BUILT | 2 clips, ~240 labelled ball frames | `labeling/`, `scripts/` |
 | CVSPORTS_Padel | 99 rallies, 2 377 labelled hits (Ghent/imec) | licence **not stated** | DATA, MEASURED | see hits row | `data/external/cvsports_padel/` |
 | PadelTracker100 labels | ball boxes, pose, shots (videos private) | CC BY 4.0 | DATA, unusable for training (no frames) | - | `data/external/padeltracker100/` |
-| Ball in 3D, bounces typed | needs 6 height clicks per camera | - | NOT BUILT | - | planned `geometry/camera3d.py` |
+| 3D camera (DLT) | full projection from floor + height clicks; ray / point at height | own | BUILT (tests, synthetic) - **waiting for the owner's clicks** | not measured on real footage yet | `geometry/camera3d.py`, `scripts/calibrate_3d.py` |
+| Ball in 3D, bounces typed | ballistic fit on the 3D camera | - | NOT BUILT | - | - |
 | Hit classifier + ball track | ball speed/turn/kinks added to the audio model | own | BUILT, MEASURED | F1 0.851 vs 0.847 audio only: no real gain | `scripts/train_hit_classifier_vision.py` |
 | Pose, shot types, point winner | - | - | NOT BUILT | - | - |
 
