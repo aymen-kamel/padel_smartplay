@@ -8,7 +8,8 @@ point to click is written at the top of the window. Controls (click the window f
     left click   place the current point (a zoom inset follows the mouse)
     S            skip this point (not visible / not sure)       U   go back one point
     Q or Esc     save and quit (you can run the command again later: clicks are kept)
-After 2 height points a yellow ring shows where the camera EXPECTS the next point: a big gap means a wrong click.
+A green ring + arrow marks the FLOOR directly below the current point: click ABOVE it, at the top of the net / glass
+(clicks on the green ring itself are refused). After 2 height points a yellow ring shows where the camera EXPECTS the next point: a big gap means a wrong click.
 At the end: reprojection error (px), leave-one-out error, camera position, and a check image with the 3D court drawn.
 """
 
@@ -19,7 +20,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from smartplay.geometry.camera import WORLD_POINTS_12
+from smartplay.geometry.camera import WORLD_POINTS_12, CourtCamera
 from smartplay.geometry.camera3d import HEIGHT_POINTS, Camera3D, project
 from smartplay.geometry.court import HALF_LENGTH_M, HALF_WIDTH_M
 
@@ -43,6 +44,13 @@ clicks: dict[str, list[float] | None] = {}
 if args.out.exists():
     clicks = json.loads(args.out.read_text()).get("height_points", {})
 X, Y = HALF_WIDTH_M, HALF_LENGTH_M
+floor_cam = CourtCamera.from_points(floor)
+warning = [""]
+
+
+def floor_below(k):
+    x, y, _ = HEIGHT_POINTS[k][1]
+    return np.array(floor_cam.to_image(x, y))
 
 
 def correspondences():
@@ -110,6 +118,10 @@ def on_mouse(event, x, y, _flags, _param):
     global cur
     mouse[0], mouse[1] = x / SCALE, y / SCALE
     if event == cv2.EVENT_LBUTTONDOWN and cur < len(HEIGHT_POINTS):
+        if np.hypot(x / SCALE - floor_below(cur)[0], y / SCALE - floor_below(cur)[1]) < 25:
+            warning[0] = "That is the FLOOR point (green ring). Click HIGHER: the top of the net / glass above it."
+            return
+        warning[0] = ""
         clicks[HEIGHT_POINTS[cur][0]] = [x / SCALE, y / SCALE]
         save()
         cur += 1
@@ -126,6 +138,11 @@ while True:
         if clicks.get(name):
             u, v = clicks[name]
             cv2.drawMarker(canvas, (int(u), int(v)), (255, 0, 255), cv2.MARKER_CROSS, 22, 2)
+    if cur < len(HEIGHT_POINTS):  # where the floor is, directly below the point to click
+        fb = floor_below(cur)
+        cv2.circle(canvas, (int(fb[0]), int(fb[1])), 10, (0, 255, 0), 2)
+        cv2.arrowedLine(canvas, (int(fb[0]), int(fb[1]) - 14), (int(fb[0]), int(fb[1]) - 70), (0, 255, 0), 2,
+                        tipLength=0.3)
     cam = camera()
     if cam is not None and cur < len(HEIGHT_POINTS):
         u, v = project(cam.P, np.array([HEIGHT_POINTS[cur][1]]))[0]
@@ -146,6 +163,8 @@ while True:
         text = "All points answered. Q = save and quit, U = go back."
     cv2.rectangle(view, (0, 0), (view.shape[1] - 260, 34), (0, 0, 0), -1)
     cv2.putText(view, text, (10, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)
+    if warning[0]:
+        cv2.putText(view, warning[0], (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2, cv2.LINE_AA)
     if cam is not None:
         cv2.putText(view, f"reprojection {cam.reproj_px:.1f} px, leave-one-out {cam.loo_px:.1f} px",
                     (10, view.shape[0] - 14), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2, cv2.LINE_AA)
@@ -170,6 +189,9 @@ print(f"saved {args.out}")
 print(f"points: 12 floor + {cam.n_height_points} with height")
 print(f"reprojection error {cam.reproj_px:.2f} px (consistency), leave-one-out {cam.loo_px:.2f} px (honest)")
 c = cam.centre
+if c[2] <= 0.5:
+    print("WARNING: the camera comes out BELOW the floor: some height points were clicked on the floor. "
+          "Press U in the tool to redo them (click the TOP of the net / glass, not the green ring).")
 print(f"camera position: x {c[0]:.2f} m, y {c[1]:.2f} m (negative = behind the near baseline at -10), height {c[2]:.2f} m")
 check = img.copy()
 draw_wire(check, cam)
