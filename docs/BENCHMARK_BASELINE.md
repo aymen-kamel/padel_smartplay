@@ -247,3 +247,17 @@ landed). A bounce fit is preferred; a player-anchored fit is kept when it reproj
 Speeds 6-153 km/h. Still suspect: flights at 144-153 km/h (close to the 160 km/h cap), a slow flight (7-11 km/h at 2.3 m)
 at the end of clip 12 that is probably the ball held or bounced by a player after the point, and the few frames behind the walls.
 Not validated against 3D ground truth (none exists); the same calibration was used for both clips (same broadcast camera).
+
+## Update 2026-11-19: pose models on the same 76 frames (`scripts/pose_bakeoff.py`)
+Clips 12 and 24, every 10th frame. A tracked player counts as covered when a skeleton's ankles fall within 1.5 m of it on
+the floor. **Coverage only: no pose labels exist, so keypoint accuracy is not measured.**
+
+| Model | Licence | Near players covered | Far players covered | Extra skeletons on court | Time per frame |
+|---|---|---|---|---|---|
+| YOLO26m-pose, 1280 px + 2.5x far-half pass | Ultralytics AGPL-3.0 (experiment only) | 98.7 % | 99.3 % | 2 | 0.12 s (GPU) |
+| RTMPose-m + YOLOX-m (rtmlib "balanced") | Apache-2.0 | 99.3 % | 98.0 % | 5 | 0.63 s (CPU) |
+| RTMPose-x + YOLOX-x (rtmlib "performance") | Apache-2.0 | 99.3 % | **99.3 %** | 2 | 1.85 s (CPU) |
+
+All three find almost every player. RTMPose-x matches YOLO26 on coverage and false skeletons with a permissive licence; it was
+run on CPU here (no onnxruntime-gpu installed), so its speed on the RTX 3050 is not measured. Without the far-half pass YOLO26 at
+640 px found only the near players. Next: label wrists/elbows on ~30 frames to measure accuracy before choosing for good.
