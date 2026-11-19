@@ -233,3 +233,17 @@ One kept flight ends 1.3 m behind the back glass: also suspect.
 
 Not validated: no 3D ground truth exists. What should make it reliable: start each flight at the hitter (players are known in
 metres), chain flights through floor bounces (z = 0 and restitution link two arcs), and longer flights.
+
+### With physical priors (player at the start of a hit, bounce continuation)
+Each window is fitted under three hypotheses: free; starting within reach of a player (players' floor positions in metres from
+the tracker, soft penalty beyond 1.3 m, start height 0.2-3 m); continuing a floor bounce (starts where the previous flight
+landed). A bounce fit is preferred; a player-anchored fit is kept when it reprojects within 1 px of the free fit.
+
+| Clip | Flights | Frames in 3D | Anchors | Flight ends | Frames > 0.3 m outside the walls |
+|---|---|---|---|---|---|
+| point_24 | 14 | 129 / 401 (**32 %**, was 15 %) | player 13, free 1 | floor 1, glass 1, other 12 | 5 |
+| point_12 | 13 | 210 / 342 (**61 %**) | player 8, free 4, bounce 1 | floor 4, glass 1, other 8 | 2 |
+
+Speeds 6-153 km/h. Still suspect: flights at 144-153 km/h (close to the 160 km/h cap), a slow flight (7-11 km/h at 2.3 m)
+at the end of clip 12 that is probably the ball held or bounced by a player after the point, and the few frames behind the walls.
+Not validated against 3D ground truth (none exists); the same calibration was used for both clips (same broadcast camera).

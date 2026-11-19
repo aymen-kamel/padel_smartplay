@@ -51,3 +51,15 @@ def test_ball_going_under_the_floor_is_rejected():
     uv = project(P, path)
     states = [BallState(frame=i, uv=(float(u), float(v)), visibility="visible", conf=0.9) for i, (u, v) in enumerate(uv)]
     assert fit_flights(states, cam, fps) == []
+
+
+def test_player_prior_is_used_when_it_fits_as_well():
+    cam, P = camera()
+    fps = 25.0
+    path = trajectory([1.0, -7.0, 1.0], [-0.5, 12.0, 6.0], 25, fps)
+    uv = project(P, path)
+    states = [BallState(frame=i, uv=(float(u), float(v)), visibility="visible", conf=0.9) for i, (u, v) in enumerate(uv)]
+    players = {0: [(1.3, -7.4), (-2.0, 6.0)]}
+    flights = fit_flights(states, cam, fps, players=players)
+    assert flights and flights[0].anchor == "player"
+    assert np.linalg.norm(flights[0].at(0, fps) - path[0]) < 0.3

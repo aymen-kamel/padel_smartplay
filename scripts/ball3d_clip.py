@@ -28,7 +28,12 @@ P = np.array(cal["P"])
 cam = Camera3D(P, cal["reproj_px"], cal["loo_px"], 0, cal["n_height_points"])
 states = [BallState(**b) for b in json.loads((args.run / "ball.json").read_text())]
 _, kinks = refine_physics(states)
-flights = fit_flights(states, cam, args.fps)
+players: dict[int, list[tuple[float, float]]] = {}
+tracks_file = args.run / "tracks.json"
+if tracks_file.exists():
+    for r in json.loads(tracks_file.read_text()):
+        players.setdefault(r["frame"], []).append(tuple(r["foot_xy_m"]))
+flights = fit_flights(states, cam, args.fps, players=players or None)
 seen = sum(s.visibility == "visible" for s in states)
 covered = sum(fl.f1 - fl.f0 + 1 for fl in flights)
 print(f"{len(states)} frames, ball seen in {seen}; {len(kinks)} kinks; {len(flights)} flights fitted in 3D "
@@ -38,11 +43,11 @@ for fl in flights:
     print(f"  frames {fl.f0:3d}-{fl.f1:3d} ({fl.n_obs:2d} obs, {fl.rms_px:4.1f} px)  "
           f"start ({path[0][0]:+5.1f},{path[0][1]:+6.1f},{path[0][2]:4.1f}) m  end ({path[-1][0]:+5.1f},{path[-1][1]:+6.1f},"
           f"{path[-1][2]:4.1f}) m  apex {path[:, 2].max():4.1f} m  speed {fl.speed_kmh(fl.f0, args.fps):5.0f} -> "
-          f"{fl.speed_kmh(fl.f1, args.fps):5.0f} km/h  ends: {fl.end_contact}")
+          f"{fl.speed_kmh(fl.f1, args.fps):5.0f} km/h  ends: {fl.end_contact}  [{fl.anchor}]")
 out = states_with_3d(states, flights, args.fps)
 (args.run / "ball3d.json").write_text(json.dumps({
     "fps": args.fps,
     "flights": [{"f0": fl.f0, "f1": fl.f1, "p0": fl.p0.tolist(), "v0": fl.v0.tolist(), "rms_px": fl.rms_px,
-                 "n_obs": fl.n_obs, "end_contact": fl.end_contact} for fl in flights],
+                 "n_obs": fl.n_obs, "end_contact": fl.end_contact, "anchor": fl.anchor} for fl in flights],
     "xyz": [list(s.xyz_m) if s.xyz_m else None for s in out]}))
 print(f"wrote {args.run / 'ball3d.json'}")
